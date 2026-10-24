@@ -1,0 +1,14 @@
+.git
+.vercel
+.edge-qa
+.edge-qa-approved
+.edge-qa-live
+.video-tools
+.*-qa.html
+check-*.py
+qa-*.txt
+/*.png
+/*.jpg
+!/jumpplay-action-highlight-poster.jpg
+public
+node_modules

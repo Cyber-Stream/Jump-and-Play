@@ -3,3 +3,6 @@
 .edge-qa-live/
 __pycache__/
 *.pyc
+.vercel/
+public/
+node_modules/
