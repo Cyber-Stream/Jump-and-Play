@@ -9,6 +9,7 @@
     "test:database": "node --env-file=.env.local --test tests/database.integration.cjs",
     "dev": "node --env-file-if-exists=.env.local scripts/dev-server.cjs",
     "test:responsive": "node scripts/check-responsive.cjs",
+    "test:ios": "node scripts/check-ios.cjs",
     "test:whatsapp": "node scripts/check-whatsapp-direct.cjs"
   },
   "dependencies": {

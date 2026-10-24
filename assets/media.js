@@ -4,51 +4,95 @@
   const connection = navigator.connection;
   const hero = document.querySelector('.hero-bg-video');
   const toggle = document.querySelector('.hero-video-toggle');
+  const heroStatus = document.querySelector('.hero-video-status');
   const clips = [...document.querySelectorAll('.action-video')];
-  let heroVisible = true, userChoice = null, playAttempt = 0;
+  let heroVisible = true, pageActive = true, userChoice = null, playAttempt = 0;
+  let pending = false, blocked = false;
   const automaticAllowed = () => !reduced.matches && !connection?.saveData;
-  const heroWanted = () => heroVisible && !document.hidden && (userChoice === true || (userChoice === null && automaticAllowed()));
+  const heroWanted = () => pageActive && heroVisible && !document.hidden && (userChoice === true || (userChoice === null && automaticAllowed()));
   const syncHero = () => {
     const playing = !hero.paused && !hero.ended;
-    toggle.textContent = playing ? 'Pause background video' : 'Play background video';
+    toggle.textContent = playing || pending ? 'Pause background video' : 'Play background video';
     toggle.setAttribute('aria-label', toggle.textContent);
     toggle.setAttribute('aria-pressed', String(playing));
-    hero.dataset.playback = playing ? 'playing' : 'paused';
+    hero.dataset.playback = playing ? 'playing' : blocked ? 'blocked' : pending ? 'loading' : 'paused';
+    if (heroStatus) heroStatus.textContent = hero.error ? 'Video unavailable. Tap Play to retry.'
+      : blocked ? 'Tap Play to start the background video.' : '';
   };
   const playHero = () => {
     const attempt = ++playAttempt;
+    pending = true; blocked = false;
     // Set both properties before play(): required for reliable muted playback on iOS.
     hero.muted = true; hero.defaultMuted = true; hero.playsInline = true;
     if (hero.error) hero.load();
-    const result = hero.play();
-    Promise.resolve(result).then(() => {
+    syncHero();
+    // Call play synchronously: a tap must retain Safari's user activation.
+    Promise.resolve(hero.play()).then(() => {
       if (attempt !== playAttempt) return;
+      pending = false;
       if (!heroWanted()) hero.pause();
       syncHero();
-    }).catch(() => { hero.dataset.playback = 'blocked'; syncHero(); });
+    }).catch(error => {
+      if (attempt !== playAttempt) return;
+      pending = false;
+      // AbortError is a lifecycle interruption, not a permission denial.
+      blocked = error.name !== 'AbortError';
+      if (blocked) hero.autoplay = false;
+      syncHero();
+    });
   };
   const updateHero = () => {
-    if (heroWanted()) { if (hero.paused) playHero(); }
-    else { ++playAttempt; hero.pause(); syncHero(); }
+    // Preserve native muted autoplay. Safari can start it when the video becomes ready/visible.
+    hero.autoplay = heroWanted() && !blocked;
+    if (heroWanted()) { if (hero.paused && !pending && !blocked) playHero(); }
+    else { ++playAttempt; pending = false; hero.pause(); syncHero(); }
   };
   if (hero && toggle) {
     hero.muted = true; hero.defaultMuted = true; hero.playsInline = true;
-    hero.autoplay = false;
+    hero.setAttribute('muted', ''); hero.setAttribute('playsinline', '');
+    hero.setAttribute('webkit-playsinline', '');
     toggle.addEventListener('click', () => {
       const bounds = hero.getBoundingClientRect();
       heroVisible = bounds.bottom > 0 && bounds.top < innerHeight;
-      userChoice = hero.paused;
-      if (userChoice) playHero(); else { ++playAttempt; hero.pause(); }
+      // Honor the displayed control if Safari changes paused before its media event arrives.
+      userChoice = toggle.getAttribute('aria-pressed') !== 'true' && !pending;
+      hero.autoplay = userChoice;
+      if (userChoice) playHero(); else { ++playAttempt; pending = false; hero.pause(); }
       syncHero();
     });
-    ['playing', 'pause', 'ended', 'error'].forEach(event => hero.addEventListener(event, syncHero));
+    hero.addEventListener('playing', () => {
+      pending = false; blocked = false;
+      if (!heroWanted()) hero.pause();
+      syncHero();
+    });
+    ['pause', 'ended', 'error'].forEach(event => hero.addEventListener(event, syncHero));
+    ['loadedmetadata', 'canplay'].forEach(event => hero.addEventListener(event, updateHero));
+    // A deliberate interaction with the introduction can unlock silent playback on iOS.
+    hero.closest('.hero-stage').addEventListener('click', event => {
+      if (!event.target.closest('.hero-video-toggle') && blocked && heroWanted()) playHero();
+    });
     if ('IntersectionObserver' in window) new IntersectionObserver(entries => {
       heroVisible = entries[entries.length - 1].isIntersecting;
       hero.closest('.hero').classList.toggle('motion-out-of-view', !heroVisible);
       updateHero();
     }, { threshold: .05 }).observe(hero);
-    reduced.addEventListener('change', () => { userChoice = null; updateHero(); });
+    reduced.addEventListener('change', () => { userChoice = null; blocked = false; updateHero(); });
     connection?.addEventListener('change', updateHero);
+    // Safari can suspend decoding during rotation without a new intersection event.
+    let layoutFrame = 0, layoutTimer = 0;
+    const refreshFrame = () => {
+      layoutFrame = 0;
+      const bounds = hero.getBoundingClientRect();
+      heroVisible = bounds.bottom > 0 && bounds.top < innerHeight;
+      updateHero();
+    };
+    const scheduleFrameRefresh = () => {
+      if (!layoutFrame) layoutFrame = requestAnimationFrame(refreshFrame);
+      clearTimeout(layoutTimer);
+      layoutTimer = setTimeout(refreshFrame, 200);
+    };
+    window.addEventListener('resize', scheduleFrameRefresh, { passive: true });
+    window.addEventListener('orientationchange', scheduleFrameRefresh, { passive: true });
     updateHero();
   }
   clips.forEach(video => {
@@ -94,10 +138,12 @@
   document.addEventListener('visibilitychange', () => {
     document.documentElement.classList.toggle('page-hidden', document.hidden);
     if (document.hidden) clips.forEach(video => video.pause());
-    if (hero) updateHero();
+    if (hero) { if (!document.hidden) blocked = false; updateHero(); }
   });
   window.addEventListener('pagehide', () => {
-    ++playAttempt; hero?.pause(); clips.forEach(video => video.pause());
+    pageActive = false;
+    if (hero) hero.autoplay = false;
+    ++playAttempt; pending = false; hero?.pause(); clips.forEach(video => video.pause());
   });
-  window.addEventListener('pageshow', () => { if (hero) updateHero(); });
+  window.addEventListener('pageshow', () => { pageActive = true; if (hero) { blocked = false; updateHero(); } });
 })();

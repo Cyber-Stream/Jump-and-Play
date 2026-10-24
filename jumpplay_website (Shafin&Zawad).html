@@ -30,10 +30,11 @@
 </nav>
 <!-- HERO -->
 <section class="hero" id="home">
+  <div class="hero-stage">
   <!-- BG VIDEO -->
-  <video class="hero-bg-video" autoplay muted loop playsinline webkit-playsinline preload="metadata" poster="/assets/media/hero-mobile-poster.webp" aria-label="Jump &amp; Play in action">
-    <source src="/assets/media/hero-mobile.mp4" media="(max-width: 767px)" type="video/mp4">
-    <source src="/assets/media/hero-desktop.mp4" type="video/mp4">
+  <video id="heroVideo" class="hero-bg-video" autoplay muted loop playsinline webkit-playsinline preload="metadata" poster="/assets/media/hero-poster-v2.webp" width="464" height="832" aria-label="Jump &amp; Play in action">
+    <source src="/assets/media/hero-mobile-v2.mp4" media="(max-width: 767px)" type="video/mp4">
+    <source src="/assets/media/hero-desktop-v2.mp4" type="video/mp4">
   </video>
   <div class="hero-bg-overlay"></div>
   <div class="hero-grid-bg"></div>
@@ -62,14 +63,15 @@
 
     <p class="hero-sub">Jump on the platform. Your character moves in real time. Scores go up. Calories burn. All at the same time — without even realizing you're working out.</p>
 
-  <button class="hero-video-toggle" type="button" aria-pressed="false">Play background video</button>
+    <button class="hero-video-toggle" type="button" aria-controls="heroVideo" aria-describedby="heroVideoStatus" aria-pressed="false">Play background video</button>
+    <p class="hero-video-status" id="heroVideoStatus" role="status" aria-live="polite"></p>
 
     <div class="hero-buttons">
       <a href="#contact" class="btn-primary">🚀 Request The Platform</a>
       <a href="#platform" class="btn-secondary">▶ See How It Works</a>
     </div>
   </div>
-
+  </div>
   <div class="platform-showcase">
     <div class="platform-img-wrap">
       <img src="/assets/optimized/6c464004181f10f7.webp" alt="Jump & Play Platform" loading="lazy" decoding="async" width="900" height="1200">

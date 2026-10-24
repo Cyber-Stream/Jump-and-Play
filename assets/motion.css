@@ -47,13 +47,28 @@
 .carousel-ring { will-change: transform; }
 .nav-indicator { width: 1px; transform-origin: left center; transition: transform 360ms var(--ease-out), opacity 180ms ease; }
 .experience-viewport { contain: layout paint; }
-.hero { min-height: 100svh; }
+.hero { min-height: 100svh; display: block; padding: 0; }
+/* Keep the portrait footage framed around the introduction, independent of the photos. */
+.hero-stage {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; min-height: 100svh;
+  padding: calc(var(--nav-height) + 3rem) max(2rem, env(safe-area-inset-right)) 4rem max(2rem, env(safe-area-inset-left));
+}
+.hero-bg-video { object-position: 50% 48%; opacity: .48; background: var(--bg); }
+.hero-stage .hero-bg-overlay { background: linear-gradient(180deg,rgba(5,8,22,.3),rgba(5,8,22,.38) 65%,var(--bg)); }
+.hero-buttons { margin-bottom: 0; }
+.hero .platform-showcase { padding: 1rem max(2rem, env(safe-area-inset-right)) 4rem max(2rem, env(safe-area-inset-left)); }
+nav { padding-top: calc(1.2rem + env(safe-area-inset-top)); padding-left: max(2rem, env(safe-area-inset-left)); padding-right: max(2rem, env(safe-area-inset-right)); }
+footer { padding-bottom: max(2rem, env(safe-area-inset-bottom)); }
 .hero-video-toggle {
   position: relative; align-self: center; z-index: 4; margin: -1.75rem auto 1.5rem;
   min-height: 44px; padding: .55rem .85rem; border-radius: 24px;
   border: 1px solid rgba(255,255,255,.35); background: rgba(5,8,22,.8);
   color: var(--white); font: 500 .75rem 'Space Grotesk',sans-serif; cursor: pointer;
 }
+.hero-video-status { max-width: 30rem; color: var(--white); font-size: .75rem; line-height: 1.5; margin: -.8rem 0 1.25rem; }
+.hero-video-status:empty { display: none; }
 .video-status { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 3;
   color: white; background: rgba(5,8,22,.86); border-radius: 8px; padding: 8px; font-size: .8rem; }
 .video-status:empty { display: none; }
@@ -78,7 +93,7 @@
 .page-hidden *, .page-hidden *::before, .page-hidden *::after,
 .hero.motion-out-of-view .hero-orb-1, .hero.motion-out-of-view .hero-orb-2 { animation-play-state: paused !important; }
 @media (max-width: 1100px) {
-  nav { background: rgba(5,8,22,.96); backdrop-filter: none; }
+  nav { background: rgba(5,8,22,.96); backdrop-filter: none; padding-inline: max(1.25rem, env(safe-area-inset-left)) max(1.25rem, env(safe-area-inset-right)); }
   .tech-gallery::backdrop, .step-card, .why-card, .creator-card { backdrop-filter: none; }
 }
 @media (hover: none) {
@@ -95,13 +110,16 @@
   nav { flex-wrap: wrap; gap: .4rem; }
   .nav-links { flex-basis: 100%; gap: 1.35rem; padding-bottom: 2px; }
   .nav-links a:not(.nav-cta) { min-height: 44px; display: inline-flex; align-items: center; }
-  .hero { padding-top: calc(var(--nav-height) + 2rem); }
-  .hero h1 { font-size: clamp(1.9rem, 8.5vw, 3.4rem); }
-  .hero-sub { padding-inline: .25rem; font-size: .95rem; }
-  .hero-buttons { width: 100%; padding-inline: 1.1rem; gap: .75rem; }
-  .hero-buttons a { width: 100%; justify-content: center; }
+  nav { padding-top: calc(.8rem + env(safe-area-inset-top)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
+  .hero-stage { padding: calc(var(--nav-height) + 2rem) max(1.1rem, env(safe-area-inset-right)) 3rem max(1.1rem, env(safe-area-inset-left)); }
+  .hero-stage .hero-bg-video { object-position: 50% 50%; }
+  .hero h1 { font-size: clamp(1.4rem, 7.2vw, 3.4rem); }
+  .hero-eyebrow { margin-bottom: 1.5rem; }
+  .hero-sub { padding-inline: .25rem; font-size: .95rem; line-height: 1.6; margin-block: 1rem 2.5rem; }
+  .hero-buttons { width: 100%; padding-inline: 0; gap: .75rem; }
+  .hero-buttons a { width: 100%; padding-inline: 1rem; justify-content: center; }
   .hero-video-toggle { font-size: .7rem; }
-  .platform-showcase { gap: 1.25rem; padding-inline: 1.1rem; margin-bottom: 2rem; }
+  .hero .platform-showcase { gap: 1.25rem; padding-inline: max(1.1rem, env(safe-area-inset-left)) max(1.1rem, env(safe-area-inset-right)); margin-bottom: 0; }
   .platform-img-wrap { width: min(100%, 340px); }
   .stats-grid { gap: 1.5rem; }
   .contact-form, .contact-grid > *, .product-grid > *, .tech-grid > * { min-width: 0; }
@@ -111,6 +129,9 @@
   .action-media { max-width: 340px; }
   .action-media.is-playing .action-toggle { opacity: .85; }
   .video-status { bottom: 68px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .hero-stage .hero-bg-video { object-fit: contain; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
