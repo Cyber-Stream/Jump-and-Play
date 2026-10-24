@@ -116,6 +116,8 @@ async function framing(page) {
     });
     const page = await context.newPage();
     await page.goto(base, { waitUntil: 'domcontentloaded' });
+    // Initial pageshow may legitimately trigger one recovery attempt after slow media loads.
+    await page.waitForLoadState('load');
     await page.waitForFunction(() => document.querySelector('.hero-bg-video').dataset.playback === 'blocked');
     // Reveal the content without a click that would itself unlock playback.
     await page.evaluate(() => skipIntro());
