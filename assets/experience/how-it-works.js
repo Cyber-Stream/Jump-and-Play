@@ -1,0 +1,310 @@
+(() => {
+  const host = document.getElementById('howExperience');
+  if (!host) return;
+  const viewport = host.querySelector('.experience-viewport');
+  const pauseButton = host.querySelector('.experience-pause');
+  const replayButton = host.querySelector('.experience-replay');
+  const status = host.querySelector('.experience-status');
+  const stepCards = [...document.querySelectorAll('.how-section .step-card')];
+  const stageButtons = [...host.querySelectorAll('.walkthrough-stage-button')];
+  const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
+  } catch (error) {
+    host.classList.add('experience-fallback');
+    status.textContent = 'Your jump → pressure sensors → wireless controller → dinosaur jump';
+    pauseButton.disabled = true; replayButton.disabled = true;
+    return;
+  }
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  renderer.domElement.setAttribute('role', 'img');
+  renderer.domElement.setAttribute('aria-label', 'Interactive six-step 3D walkthrough showing power on, Bluetooth pairing, launching a game, jumping on the platform, sensor detection, and gameplay.');
+  viewport.prepend(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(35, 1, .1, 80);
+  camera.position.set(6.5, 5.5, 10.8);
+  const target = new THREE.Vector3(.1, 1.05, 0);
+  camera.lookAt(target);
+  scene.add(new THREE.HemisphereLight(0xd3eaff, 0x22304e, 2.2));
+  const key = new THREE.DirectionalLight(0xfff0dd, 4);
+  key.position.set(-4, 10, 7); key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024);
+  Object.assign(key.shadow.camera, { left: -9, right: 9, top: 8, bottom: -8 });
+  key.shadow.bias = -.0005; scene.add(key);
+  const rim = new THREE.DirectionalLight(0x53bfff, 2.8); rim.position.set(5, 6, -6); scene.add(rim);
+  const fill = new THREE.PointLight(0x9065ff, 22, 15); fill.position.set(-4, 3, -3); scene.add(fill);
+  const material = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: .55, ...extra });
+  const navy = material(0x172944), cyan = material(0x48e1ed), white = material(0xe5eef6);
+  const skin = material(0xc88c65), hair = material(0x241e2a), orange = material(0xff8655);
+  const shoeMat = material(0xf1f4ee), dark = material(0x09121e), steel = material(0x263c50, { metalness: .5 });
+  const glow = material(0x21cbd7, { emissive: 0x00d5e8, emissiveIntensity: .6 });
+  const mesh = (geometry, mat, parent = scene, position = [0, 0, 0]) => {
+    const object = new THREE.Mesh(geometry, mat); object.position.set(...position);
+    object.castShadow = true; object.receiveShadow = true; parent.add(object); return object;
+  };
+  const box = (w, h, d, mat, parent, position) => mesh(new THREE.BoxGeometry(w, h, d), mat, parent, position);
+  const round = (w, h, d, r, mat, parent, position) => {
+    const x = -w / 2 + r, y = -h / 2 + r, a = w - 2 * r, b = h - 2 * r;
+    const shape = new THREE.Shape();
+    shape.moveTo(x, y); shape.lineTo(x + a, y); shape.lineTo(x + a, y + b); shape.lineTo(x, y + b); shape.closePath();
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: Math.max(.01, d - 2 * r), bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: r, bevelThickness: r });
+    geo.center(); return mesh(geo, mat, parent, position);
+  };
+  const sphere = (r, mat, parent, position, scale) => {
+    const o = mesh(new THREE.SphereGeometry(r, 24, 16), mat, parent, position); if (scale) o.scale.set(...scale); return o;
+  };
+  // A softly lit exhibition plinth grounds the entire connected experience.
+  round(9.3, .25, 4.7, .1, material(0x15243b), scene, [0, -.27, -.3]);
+  round(9.1, .08, 4.5, .03, material(0x23354c), scene, [0, -.1, -.3]);
+  const platform = new THREE.Group(); platform.position.set(-2.2, .05, .55); scene.add(platform);
+  round(2.65, .22, 2.1, .07, dark, platform, [0, 0, 0]);
+  round(2.52, .06, 1.97, .02, material(0x33495b), platform, [0, .14, 0]);
+  const pads = [];
+  for (let x = 0; x < 4; x++) for (let z = 0; z < 3; z++) {
+    const mat = material(0x405b6b, { emissive: 0x00b8ce, emissiveIntensity: .035 });
+    pads.push(round(.52, .025, .5, .008, mat, platform, [(x - 1.5) * .59, .185, (z - 1) * .59]));
+  }
+  round(2.5, .025, .035, .008, glow, platform, [0, .03, 1.04]);
+  const controller = round(.52, .2, .38, .035, navy, scene, [-.64, .08, .6]);
+  round(.22, .018, .2, .006, steel, controller, [0, .11, 0]);
+  sphere(.035, glow, controller, [.16, .12, .08]);
+  const pressureRing = mesh(new THREE.RingGeometry(.48, .51, 64), new THREE.MeshBasicMaterial({ color: 0x45e6f1, transparent: true, opacity: 0, side: THREE.DoubleSide }), platform, [0, .213, 0]);
+  pressureRing.rotation.x = -Math.PI / 2;
+  // Stylized child with articulated arms and legs, shaped entirely in 3D.
+  const kid = new THREE.Group(); kid.position.set(-2.2, .22, .55); kid.rotation.y = .42; scene.add(kid);
+  const upper = new THREE.Group(); kid.add(upper);
+  round(.79, .87, .46, .1, orange, upper, [0, 1.84, 0]);
+  round(.52, .08, .06, .02, white, upper, [0, 1.91, .235]);
+  sphere(.13, skin, upper, [0, 2.33, 0], [1, 1.35, 1]);
+  sphere(.47, skin, upper, [0, 2.79, 0], [.91, 1.04, .9]);
+  sphere(.45, hair, upper, [0, 3.01, -.055], [1, .64, 1]);
+  for (let i = 0; i < 5; i++) sphere(.16, hair, upper, [(i - 2) * .14, 3.12 + Math.sin(i) * .035, .19]);
+  sphere(.105, skin, upper, [-.43, 2.8, 0], [.7, 1, 1]); sphere(.105, skin, upper, [.43, 2.8, 0], [.7, 1, 1]);
+  for (const x of [-.16, .16]) {
+    sphere(.075, white, upper, [x, 2.84, .365], [.8, 1, .45]);
+    sphere(.037, dark, upper, [x + .014, 2.84, .398], [.8, 1, .5]);
+    round(.12, .026, .025, .008, hair, upper, [x, 2.97, .36]);
+  }
+  sphere(.065, skin, upper, [0, 2.72, .42], [.7, .8, 1]);
+  const smile = new THREE.CatmullRomCurve3([new THREE.Vector3(-.1, 2.63, .38), new THREE.Vector3(0, 2.6, .405), new THREE.Vector3(.1, 2.63, .38)]);
+  mesh(new THREE.TubeGeometry(smile, 12, .015, 5, false), material(0x723e37), upper);
+  round(.66, .33, .45, .06, navy, upper, [0, 1.32, 0]);
+  const joints = [], limbs = [];
+  for (const side of [-1, 1]) {
+    const leg1 = mesh(new THREE.CylinderGeometry(.14, .12, 1, 12), navy, kid);
+    const leg2 = mesh(new THREE.CylinderGeometry(.11, .09, 1, 12), skin, kid);
+    const shoe = round(.27, .19, .49, .06, shoeMat, kid, [side * .23, .12, .1]);
+    round(.28, .055, .5, .02, cyan, shoe, [0, -.08, 0]);
+    const arm1 = mesh(new THREE.CylinderGeometry(.13, .11, 1, 12), orange, upper);
+    const arm2 = mesh(new THREE.CylinderGeometry(.095, .08, 1, 12), skin, upper);
+    const hand = sphere(.11, skin, upper, [0, 0, 0]);
+    limbs.push({ side, leg1, leg2, arm1, arm2, hand });
+  }
+  const up = new THREE.Vector3(0, 1, 0), va = new THREE.Vector3(), vb = new THREE.Vector3();
+  const bone = (object, a, b) => {
+    va.set(...a); vb.set(...b); object.position.copy(va).add(vb).multiplyScalar(.5);
+    vb.sub(va); object.scale.y = vb.length(); object.quaternion.setFromUnitVectors(up, vb.normalize());
+  };
+  // Television and live, synchronized dinosaur game texture.
+  const tv = new THREE.Group(); tv.position.set(2.55, 0, -.55); tv.rotation.y = -.12; scene.add(tv);
+  round(1.7, .12, .9, .04, steel, tv, [0, .03, 0]);
+  round(.2, 1.1, .18, .04, steel, tv, [0, .6, -.1]);
+  round(3.65, 2.24, .2, .055, dark, tv, [0, 2.12, 0]);
+  const gameCanvas = document.createElement('canvas'); gameCanvas.width = 960; gameCanvas.height = 540;
+  const ctx = gameCanvas.getContext('2d');
+  const texture = new THREE.CanvasTexture(gameCanvas); texture.colorSpace = THREE.SRGBColorSpace;
+  const screen = mesh(new THREE.PlaneGeometry(3.43, 2), new THREE.MeshBasicMaterial({ map: texture }), tv, [0, 2.15, .112]);
+  sphere(.025, glow, tv, [0, 1.05, .12]);
+  const path = new THREE.CatmullRomCurve3([new THREE.Vector3(-.55, .25, .6), new THREE.Vector3(.1, .7, 1.1), new THREE.Vector3(1, 1.1, 1.2), new THREE.Vector3(2.5, 1.2, -.3)]);
+  mesh(new THREE.TubeGeometry(path, 48, .012, 6, false), new THREE.MeshBasicMaterial({ color: 0x346f88, transparent: true, opacity: .5 }));
+  const packets = [0, 1, 2].map(() => sphere(.055, glow));
+  const cactus = (x, y, scale = 1) => {
+    ctx.fillStyle = '#407c83'; ctx.fillRect(x, y - 55 * scale, 12 * scale, 55 * scale);
+    ctx.fillRect(x - 15 * scale, y - 35 * scale, 39 * scale, 10 * scale);
+    ctx.fillRect(x - 15 * scale, y - 49 * scale, 9 * scale, 23 * scale);
+    ctx.fillRect(x + 17 * scale, y - 46 * scale, 9 * scale, 21 * scale);
+  };
+  const drawGame = (time, dinoJump, airborne) => {
+    const sky = ctx.createLinearGradient(0, 0, 0, 540); sky.addColorStop(0, '#dceff0'); sky.addColorStop(1, '#eff3de');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, 960, 540);
+    ctx.fillStyle = '#f5df9c'; ctx.beginPath(); ctx.arc(760, 135, 43, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#c2d9d3'; ctx.beginPath(); ctx.moveTo(0, 375);
+    for (let x = 0; x <= 960; x += 20) ctx.lineTo(x, 324 + Math.sin(x / 115) * 22 + Math.cos(x / 170) * 18);
+    ctx.lineTo(960, 440); ctx.lineTo(0, 440); ctx.fill();
+    ctx.fillStyle = '#193e4d'; ctx.font = '600 24px sans-serif'; ctx.fillText('DINO / JUMP & PLAY', 48, 54);
+    ctx.font = '18px monospace'; ctx.fillText('SCORE ' + String(Math.floor(time * 15)).padStart(5, '0'), 740, 54);
+    ctx.fillStyle = '#b3c8bc'; ctx.fillRect(0, 422, 960, 118); ctx.fillStyle = '#6c9188'; ctx.fillRect(0, 420, 960, 3);
+    ctx.fillStyle = '#94b0a3'; for (let i = 0; i < 18; i++) ctx.fillRect((i * 67 - time * 120 % 67 + 960) % 960, 443 + i % 3 * 18, 20, 3);
+    // This obstacle crosses the dinosaur exactly during its airborne phase.
+    const phase = time % 3.6 / 3.6;
+    cactus(650 - phase * 780, 420); cactus(1080 - phase * 780, 420, .7);
+    const y = 415 - dinoJump * 145;
+    ctx.fillStyle = '#164a53';
+    const pixel = 9, dx = 260;
+    const pixels = ['      1111111','      1111011','      1111111','      1111   ','1    1111   ','11  111111  ','111111111   ',' 11111111   ','  111111    ','   11 11    '];
+    pixels.forEach((row, r) => [...row].forEach((v, c) => { if (v === '1') ctx.fillRect(dx + c * pixel, y - 108 + r * pixel, pixel, pixel); }));
+    const stride = airborne ? 0 : Math.sin(time * 20) * 7;
+    ctx.fillRect(dx + 27, y - 20, 9, 17 + stride); ctx.fillRect(dx + 54, y - 20, 9, 17 - stride);
+    ctx.fillStyle = airborne ? '#177c77' : '#5b7975'; ctx.font = '600 17px sans-serif';
+    ctx.fillText(airborne ? 'JUMP RECEIVED' : 'YOUR MOVEMENT. YOUR GAME.', 48, 500);
+    texture.needsUpdate = true;
+  };
+  // The laptop makes the pairing and game-launch stages explicit.
+  const laptop = new THREE.Group(); laptop.position.set(.25, .02, 1.15); laptop.rotation.y = -.16; scene.add(laptop);
+  round(1.55, .08, 1.05, .025, steel, laptop, [0, .08, 0]);
+  round(1.22, .015, .5, .004, navy, laptop, [0, .128, -.12]);
+  for (let row = 0; row < 3; row++) for (let col = 0; col < 9; col++)
+    box(.095, .012, .085, material(0x728ba0), laptop, [(col - 4) * .128, .145, -.29 + row * .12]);
+  round(.4, .012, .2, .004, material(0x778b9e), laptop, [0, .13, .3]);
+  const lid = new THREE.Group(); lid.position.set(0, .14, -.47); lid.rotation.x = -.18; laptop.add(lid);
+  round(1.55, 1, .065, .02, dark, lid, [0, .5, 0]);
+  const laptopCanvas = document.createElement('canvas'); laptopCanvas.width = 640; laptopCanvas.height = 400;
+  const laptopCtx = laptopCanvas.getContext('2d');
+  const laptopTexture = new THREE.CanvasTexture(laptopCanvas); laptopTexture.colorSpace = THREE.SRGBColorSpace;
+  const laptopScreen = mesh(new THREE.PlaneGeometry(1.42, .86), new THREE.MeshBasicMaterial({ map: laptopTexture }), lid, [0, .5, .038]);
+  const powerMat = material(0x132a35, { emissive: 0x37e8b5, emissiveIntensity: 0 });
+  const powerButton = mesh(new THREE.CylinderGeometry(.065, .065, .025, 24), powerMat, controller, [0, .13, .08]);
+  const sensorPositions = [[-.82,-.58],[0,-.58],[.82,-.58],[-.82,.58],[0,.58],[.82,.58],[0,0]];
+  const sensors = sensorPositions.map(([x,z]) => sphere(.09, material(0x53e9ed, { emissive: 0x11c6e0, emissiveIntensity: .2 }), platform, [x,.24,z]));
+  const signalRings = [0,1,2].map(() => {
+    const o = mesh(new THREE.TorusGeometry(.25,.012,8,48), new THREE.MeshBasicMaterial({ color:0x57ddeb,transparent:true,opacity:0 }));
+    o.position.set(-.6,.42,.65); o.rotation.x = -Math.PI/2; return o;
+  });
+  const titles = ['Power on the platform','Pair over Bluetooth','Open a compatible game','Step on and jump','Seven sensors detect movement','Play, compete, repeat'];
+  const captions = [
+    'The rechargeable controller powers the platform. Look for the ready light.',
+    'Pair the controller with your phone, tablet, or computer over Bluetooth.',
+    'Launch a compatible Jump & Play game on the connected device.',
+    'Step onto the platform and jump naturally. Your body is the controller.',
+    'The seven pressure sensors detect the jump. The controller sends the input.',
+    'The game responds to your movement. Keep jumping and chase your next score.'
+  ];
+  const stageTitle = host.querySelector('.walkthrough-title');
+  const stageDescription = host.querySelector('.walkthrough-description');
+  const stageCounter = host.querySelector('.walkthrough-counter');
+  const progress = host.querySelector('.walkthrough-progress-fill');
+  const cameraPositions = [[2.4,3.7,6.6],[4.6,4.1,8.6],[4.1,3.6,7.8],[6.5,5.5,10.8],[6.4,6.2,10.8],[6.5,5.5,10.8]];
+  const cameraTargets = [[-1,.35,.7],[-.3,.6,.8],[1.1,1,.15],[.1,1.05,0],[0,1.5,.1],[.1,1.05,0]];
+  const desiredPosition = new THREE.Vector3(), desiredTarget = new THREE.Vector3();
+  const pairLine = new THREE.CatmullRomCurve3([new THREE.Vector3(-.6,.3,.6),new THREE.Vector3(-.2,1.3,1.1),new THREE.Vector3(.2,1.1,1)]);
+  const pairingPackets = [0,1,2,3].map(() => sphere(.035,glow));
+  let playing = !motion.matches, visible = false, frame = 0, last = 0, elapsed = 0, currentStage = -1;
+  let gameTick = -1, notebookStage = -1;
+  const totalDuration = 30, stageDuration = 5;
+  const setButtons = () => { pauseButton.textContent = playing ? 'Pause walkthrough' : 'Play walkthrough'; pauseButton.setAttribute('aria-pressed',String(!playing)); };
+  const drawNotebook = (stage, local) => {
+    const c = laptopCtx; c.fillStyle = '#0d1e31'; c.fillRect(0,0,640,400);
+    c.fillStyle = '#85b3c9'; c.font = '18px sans-serif'; c.fillText('JUMP & PLAY / CONNECT',34,42);
+    if (stage===0) {
+      c.fillStyle='#7591a7';c.font='26px sans-serif';c.fillText('Ready when you are.',160,210);
+    } else if(stage===1) {
+      c.strokeStyle='#5edce9';c.lineWidth=9;c.beginPath();c.moveTo(300,100);c.lineTo(370,160);c.lineTo(270,245);c.moveTo(300,100);c.lineTo(300,280);c.lineTo(370,220);c.lineTo(270,135);c.stroke();
+      c.fillStyle=local>.45?'#83e7b8':'#c1d4e0';c.font='24px sans-serif';c.fillText(local>.45?'Platform connected':'Finding your platform...',200,335);
+    } else {
+      c.fillStyle='#dfedf3';c.font='28px sans-serif';c.fillText('Choose your game',36,95);
+      const names=['Cat & Mouse','Sky Rush','Parkour Runner'];
+      ['#23434c','#352d59','#29485b'].forEach((color,i)=>{c.fillStyle=color;c.fillRect(35+i*200,130,180,180);c.fillStyle=i===0?'#8be7d7':'#b9c9de';c.font='18px sans-serif';c.fillText(names[i],47+i*200,270);c.font='54px sans-serif';c.fillText(['01','02','03'][i],82+i*200,220);});
+      c.fillStyle='#80e1cb';c.font='20px sans-serif';c.fillText('Launch a compatible game to begin',36,360);
+    }
+    laptopTexture.needsUpdate=true;
+  };
+  const updateLabels = stage => {
+    if (stage===currentStage) return;
+    currentStage=stage;host.dataset.stage=String(stage);
+    stageTitle.textContent=titles[stage];stageDescription.textContent=captions[stage];stageCounter.textContent=`0${stage+1} / 06`;
+    stageButtons.forEach((button,i)=>{button.classList.toggle('is-active',i===stage);button.setAttribute('aria-pressed',String(i===stage));});
+    stepCards.forEach((card,i)=>{card.classList.toggle('walkthrough-active',i===stage);if(i===stage)card.setAttribute('aria-current','step');else card.removeAttribute('aria-current');});
+    const selected=stageButtons[stage], rail=selected.parentElement;
+    if(selected.offsetLeft<rail.scrollLeft||selected.offsetLeft+selected.offsetWidth>rail.scrollLeft+rail.clientWidth)rail.scrollTo({left:selected.offsetLeft-(rail.clientWidth-selected.offsetWidth)/2,behavior:motion.matches?'instant':'smooth'});
+  };
+  const pose = time => {
+    const stage=Math.min(5,Math.floor(time%totalDuration/stageDuration));
+    const local=time%stageDuration/stageDuration;
+    updateLabels(stage);progress.style.transform=`scaleX(${local})`;
+    const on=stage>0||local>.35;
+    powerMat.emissiveIntensity=on?1.8:.05;
+    powerButton.position.y=.13-(stage===0&&local>.25&&local<.4?.013:0);
+    pads.forEach(p=>{p.material.emissiveIntensity=on?.08:0;});
+    kid.visible=stage>=3;
+    // The child steps into the scene before the first full jump.
+    const walk=stage===3?Math.min(1,local/.32):1;
+    kid.position.x=-5.6+walk*3.4;
+    const jumpPhase=stage===3?Math.max(0,(local-.35)/.65):local;
+    const bounce=stage>=3?Math.max(0,Math.sin(jumpPhase*Math.PI*2)):0;
+    const crouch=stage>=3?Math.max(0,-Math.sin(jumpPhase*Math.PI*2))*.65:0;
+    kid.position.y=.22+bounce*1.05;upper.position.y=-crouch*.32;upper.rotation.x=crouch*.12;
+    for(const limb of limbs){
+      const x=limb.side*.23,hip=1.3-crouch*.32;
+      const stride=stage===3&&walk<1?Math.sin(local*50)*.2:0;
+      bone(limb.leg1,[x,hip,0],[x,.73-crouch*.1,.12+crouch*.24+stride*limb.side]);
+      bone(limb.leg2,[x,.73-crouch*.1,.12+crouch*.24+stride*limb.side],[x,.22,.04]);
+      const elbow=[limb.side*(.55+bounce*.15),1.72+bounce*.5,.1];
+      const hand=[limb.side*(.6+bounce*.22),1.4+bounce*1.23,.17];
+      bone(limb.arm1,[limb.side*.37,2.13,0],elbow);bone(limb.arm2,elbow,hand);limb.hand.position.set(...hand);
+    }
+    sensors.forEach((sensor,i)=>{
+      sensor.visible=stage===4;
+      const pulse=.5+.5*Math.sin(local*Math.PI*5-i*.45);
+      sensor.scale.setScalar(.8+pulse*.8);sensor.material.emissiveIntensity=.5+pulse*1.5;
+    });
+    if(stage===4)pads.forEach(p=>{p.material.emissiveIntensity=.35+.25*Math.sin(local*12);});
+    signalRings.forEach((ring,i)=>{
+      const cycle=(local*2+i/3)%1;ring.visible=stage===1;
+      ring.scale.setScalar(1+cycle*4);ring.material.opacity=stage===1?(1-cycle)*.55:0;
+    });
+    pairingPackets.forEach((packet,i)=>{
+      packet.visible=stage===1; if(packet.visible)packet.position.copy(pairLine.getPoint((local*2+i/4)%1));
+    });
+    packets.forEach((packet,i)=>{
+      packet.visible=stage===4||stage===5;
+      if(packet.visible)packet.position.copy(path.getPoint((local*2+i/3)%1));
+    });
+    pressureRing.material.opacity=stage>=3?Math.max(0,Math.sin(local*Math.PI*4))*.5:0;
+    pressureRing.scale.setScalar(1+(local*2%1)*2);
+    if(stage<3){
+      laptopScreen.material.map=laptopTexture;
+      if(notebookStage!==stage||stage===1){drawNotebook(stage,local);notebookStage=stage;}
+    }else{laptopScreen.material.map=texture;}
+    laptopScreen.material.needsUpdate=true;
+    const tick=Math.floor(time*24);
+    if(tick!==gameTick){
+      if(stage<2){
+        ctx.fillStyle='#101f32';ctx.fillRect(0,0,960,540);ctx.fillStyle=on?'#80cdd3':'#456075';ctx.font='32px sans-serif';ctx.textAlign='center';ctx.fillText(stage===1?(local>.45?'BLUETOOTH CONNECTED':'BLUETOOTH PAIRING'):'JUMP & PLAY',480,250);ctx.font='20px sans-serif';ctx.fillText(stage===1?'Ready to launch a game':'Power your platform to begin',480,300);ctx.textAlign='left';texture.needsUpdate=true;
+      }else drawGame(time,stage>=3?bounce:0,bounce>.05&&stage>=3);
+      gameTick=tick;
+    }
+    desiredPosition.set(...cameraPositions[stage]);desiredTarget.set(...cameraTargets[stage]);
+    if(viewport.clientWidth<600)desiredPosition.multiplyScalar(1.05);
+    camera.position.lerp(desiredPosition,playing?.055:1);target.lerp(desiredTarget,playing?.055:1);camera.lookAt(target);
+    status.textContent=['Power light turns on',(local>.45?'Bluetooth connected ? ready to play':'Bluetooth pairing in progress'),'Choose a game on your device','Movement becomes the input','Seven FSR sensors · illustrative view','Your jump controls the game'][stage];
+  };
+  const render = timestamp => {
+    frame=0;if(!visible||document.hidden){last=0;return;}
+    if(playing&&last)elapsed+=Math.min((timestamp-last)/1000,.05);
+    last=timestamp;pose(elapsed);renderer.render(scene,camera);
+    if(playing)frame=requestAnimationFrame(render);
+  };
+  const requestRender=()=>{if(!frame&&visible&&!document.hidden)frame=requestAnimationFrame(render);};
+  const seekStage=index=>{elapsed=index*stageDuration+(index===3?2.75:1.8);last=0;playing=false;gameTick=-1;setButtons();requestRender();};
+  stageButtons.forEach((button,i)=>button.addEventListener('click',()=>seekStage(i)));
+  stepCards.forEach((card,i)=>{
+    card.setAttribute('role','button');card.tabIndex=0;card.setAttribute('aria-label',`Show step ${i+1}: ${titles[i]}`);
+    card.addEventListener('click',()=>seekStage(i));
+    card.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();seekStage(i);}});
+  });
+  pauseButton.addEventListener('click',()=>{playing=!playing;last=0;setButtons();requestRender();});
+  replayButton.addEventListener('click',()=>{elapsed=0;last=0;playing=true;gameTick=-1;setButtons();requestRender();});
+  const resize=()=>{const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<600?43:34;camera.updateProjectionMatrix();requestRender();};
+  new ResizeObserver(resize).observe(viewport);
+  new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;if(visible)requestRender();else{cancelAnimationFrame(frame);frame=0;last=0;}},{threshold:.08}).observe(viewport);
+  document.addEventListener('visibilitychange',()=>{last=0;requestRender();});
+  motion.addEventListener('change',()=>{if(motion.matches){playing=false;setButtons();requestRender();}});
+  renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();cancelAnimationFrame(frame);frame=0;host.classList.add('experience-fallback');status.textContent='Follow the six steps below to connect and play.';});
+  setButtons();pose(0);resize();host.dataset.ready='true';
+})();

@@ -1,0 +1,3 @@
+Built-in image_gen; five individual edits of Downloads/1.jpeg through 5.jpeg.
+
+Use case: background-extraction. Remove tabletop, floor, foam and unrelated background. Output transparent PNG. Preserve real ESP32 prototype components, wiring, cable ties, geometry, labels, construction, camera angle and visible crop. Improve exposure, neutral white balance, fine detail and soft studio lighting. No redesign, invented missing parts, new text, logos or opaque backdrop. Center with transparent breathing room.

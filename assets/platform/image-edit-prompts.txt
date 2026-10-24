@@ -1,0 +1,3 @@
+Built-in image_gen: individual edits of 6.jpeg, 7.jpeg, 8.jpeg, 9.jpeg.
+
+Use case: background-extraction. Remove table, window, room, people, chairs, containers and unrelated background. Output transparent PNG cutout. Preserve full real gray textured exercise platform and small ESP32 battery controller with wires in exact relative positions, original camera angle, shape, proportions, visible wear, surface texture and electronics geometry. Improve neutral white balance, exposure, fine details and soft premium studio product lighting. Center both with transparent margin. No redesign, invented components, added text, branding, opaque backdrop or new hardware.

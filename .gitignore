@@ -1,0 +1,5 @@
+.edge-qa/
+.edge-qa-approved/
+.edge-qa-live/
+__pycache__/
+*.pyc
