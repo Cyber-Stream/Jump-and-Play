@@ -1,6 +1,6 @@
 # Jump & Play backend
 
-The contact form saves demonstration enquiries in PostgreSQL, then offers a WhatsApp link. There is no admin dashboard, public enquiry listing, automatic email, payment processing, or appointment reservation. A saved enquiry is a request for follow-up, not a confirmed booking.
+The contact form saves demonstration enquiries in PostgreSQL, then offers a WhatsApp link containing the original form details and saved reference. Visitors must tap Send in WhatsApp to deliver their message. If saving fails because of a network issue, server outage, or submission limit, the prefilled link remains available without claiming the enquiry was saved. A copy-message button and manual-copy fallback support browsers that cannot prefill or use the clipboard. There is no admin dashboard, public enquiry listing, automatic email, payment processing, or appointment reservation. A saved enquiry is a request for follow-up, not a confirmed booking.
 
 ## Production
 

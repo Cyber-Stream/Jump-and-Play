@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys, subprocess, time, urllib.request, json, tempfile, uuid, os
+from urllib.parse import urlparse, parse_qs
 root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(root / '.video-tools'))
 import websocket
@@ -45,7 +46,7 @@ try:
         if evaluate("typeof window.submitEnquiry === 'function'"): break
         time.sleep(.2)
     else: raise RuntimeError('Backend form script did not load')
-    values = {'name': 'Automated Browser Test', 'venue': 'Backend Verification', 'email': email, 'phone': '+8801500000000', 'message': 'Automated end-to-end test; this record will be removed.'}
+    values = {'name': "Test O'Connor", 'venue': 'Gym & Gaming + Dhaka #1', 'email': email, 'phone': '+880 1500000000', 'message': 'ঢাকায় ডেমো চাই 🎮 & ১০০% + #?=\nSecond line: café / pricing? Automated test; will be removed.'}
     evaluate("""(() => {
       const original = window.fetch;
       window.testKeys = [];
@@ -66,6 +67,7 @@ try:
         time.sleep(.2)
     else: raise RuntimeError('Network failure did not show a retry message')
     assert evaluate("document.querySelector('#contact-email').value") == email
+    assert evaluate("[...document.querySelector('.contact-form').querySelectorAll('a')].some(a => a.textContent === 'Continue on WhatsApp' && !a.hidden)"), 'WhatsApp fallback missing after network failure'
     evaluate("document.querySelector('.contact-form').requestSubmit()")
     for _ in range(150):
         text = evaluate("document.querySelector('[role=status]').textContent")
@@ -81,10 +83,65 @@ try:
         stayedOnSite: location.host === new URL('""" + url + """').host };
     })()""")
     assert all(report.values()), report
+    whatsapp = evaluate("""(() => {
+      const form = document.querySelector('.contact-form');
+      const link = [...form.querySelectorAll('a')].find(a => a.textContent === 'Continue on WhatsApp');
+      const url = new URL(link.href);
+      const status = form.querySelector('[role=status]').textContent;
+      return { number: url.pathname, text: url.searchParams.get('text'),
+        parameterCount: [...url.searchParams.keys()].length,
+        reference: status.match(/Reference: ([0-9a-f-]+)/)[1],
+        noReferrer: link.referrerPolicy === 'no-referrer',
+        sendInstruction: [...form.querySelectorAll('p')].some(p => !p.hidden && p.textContent.includes('Tap Send in WhatsApp')) };
+    })()""")
+    assert whatsapp['number'] == '/8801533580699'
+    assert whatsapp['parameterCount'] == 1 and whatsapp['noReferrer'] and whatsapp['sendInstruction']
+    assert all(value in whatsapp['text'] for value in values.values()), 'WhatsApp message lost form fields or Unicode'
+    assert ('Request reference: ' + whatsapp['reference']) in whatsapp['text']
     for width, height in [(1440, 1000), (390, 844)]:
         call('Emulation.setDeviceMetricsOverride', {'width': width, 'height': height, 'deviceScaleFactor': 1, 'mobile': width < 600})
         assert evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), 'Layout overflow'
-    print(json.dumps({'browser': 'passed', 'networkRetry': report, 'responsive': True}), flush=True)
+    # Open the prefilled chat only. Never click Send or send a real WhatsApp message.
+    call('Runtime.evaluate', {'expression': "[...document.querySelector('.contact-form').querySelectorAll('a')].find(a => a.textContent === 'Continue on WhatsApp').click()", 'userGesture': True})
+    opened = False
+    for _ in range(60):
+        targets = call('Target.getTargets').get('targetInfos', [])
+        for target in targets:
+            destination = urlparse(target.get('url', ''))
+            query = parse_qs(destination.query)
+            if destination.hostname in ['wa.me', 'api.whatsapp.com', 'web.whatsapp.com']:
+                number = destination.path.strip('/') if destination.hostname == 'wa.me' else query.get('phone', [''])[0]
+                if number == '8801533580699' and query.get('text', [''])[0] == whatsapp['text']:
+                    opened = True
+        if opened: break
+        time.sleep(.2)
+    assert opened, 'Click did not open the correct prefilled WhatsApp destination'
+    copySelector = "[...document.querySelector('.contact-form').querySelectorAll('button')].find(b => b.textContent === 'Copy WhatsApp message')"
+    evaluate("Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { window.copiedWhatsAppMessage = text; } } });")
+    evaluate(copySelector + '.click()')
+    assert evaluate('window.copiedWhatsAppMessage') == whatsapp['text']
+    evaluate("Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('Clipboard blocked'); } } });")
+    evaluate(copySelector + '.click()')
+    for _ in range(30):
+        if evaluate("!document.querySelector('textarea[aria-label]').hidden"): break
+        time.sleep(.1)
+    assert evaluate("document.querySelector('textarea[aria-label]').value") == whatsapp['text']
+    # A provider outage may return HTML rather than JSON; WhatsApp remains usable.
+    evaluate("window.fetch = async () => new Response('<h1>Unavailable</h1>', { status: 503 });")
+    evaluate('''(() => { const form = document.querySelector('.contact-form');
+      const values = ''' + json.dumps(values) + ''';
+      for (const [key, value] of Object.entries(values)) form.elements[key].value = value;
+      form.requestSubmit(); })()''')
+    for _ in range(50):
+        if evaluate("document.querySelector('[role=status]').textContent.includes('server could not confirm')"): break
+        time.sleep(.1)
+    fallback = evaluate("""(() => {
+      const link = [...document.querySelector('.contact-form').querySelectorAll('a')].find(a => a.textContent === 'Continue on WhatsApp');
+      return { shown: !link.hidden, text: new URL(link.href).searchParams.get('text'), message: document.querySelector('[role=status]').textContent };
+    })()""")
+    assert fallback['shown'] and all(v in fallback['text'] for v in values.values())
+    assert 'Your request is saved.' not in fallback['message'] and 'Request reference:' not in fallback['text']
+    print(json.dumps({'browser': 'passed', 'networkRetry': report, 'responsive': True, 'whatsappRecipient': whatsapp['number'], 'messageFieldsAndUnicode': True, 'referenceIncluded': True, 'explicitSendInstruction': True, 'whatsappTabOpened': True, 'clipboardAndManualCopy': True, 'serverOutageFallback': True, 'messageSent': False}), flush=True)
 finally:
     if ws: ws.close()
     process.terminate()
