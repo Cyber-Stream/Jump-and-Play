@@ -8,7 +8,6 @@
   const stepCards = [...document.querySelectorAll('.how-section .step-card')];
   const stageButtons = [...host.querySelectorAll('.walkthrough-stage-button')];
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
-  const compact = matchMedia('(pointer: coarse)').matches || innerWidth < 768;
   let renderer;
   try {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
@@ -18,7 +17,7 @@
     pauseButton.disabled = true; replayButton.disabled = true;
     return;
   }
-  renderer.setPixelRatio(Math.min(devicePixelRatio, compact ? 1.25 : 1.75));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -35,7 +34,7 @@
   scene.add(new THREE.HemisphereLight(0xd3eaff, 0x22304e, 2.2));
   const key = new THREE.DirectionalLight(0xfff0dd, 4);
   key.position.set(-4, 10, 7); key.castShadow = true;
-  key.shadow.mapSize.set(compact ? 512 : 1024, compact ? 512 : 1024);
+  key.shadow.mapSize.set(1024, 1024);
   Object.assign(key.shadow.camera, { left: -9, right: 9, top: 8, bottom: -8 });
   key.shadow.bias = -.0005; scene.add(key);
   const rim = new THREE.DirectionalLight(0x53bfff, 2.8); rim.position.set(5, 6, -6); scene.add(rim);
@@ -196,7 +195,7 @@
   const pairLine = new THREE.CatmullRomCurve3([new THREE.Vector3(-.6,.3,.6),new THREE.Vector3(-.2,1.3,1.1),new THREE.Vector3(.2,1.1,1)]);
   const pairingPackets = [0,1,2,3].map(() => sphere(.035,glow));
   let playing = !motion.matches, visible = false, frame = 0, last = 0, elapsed = 0, currentStage = -1;
-  let gameTick = -1, notebookStage = -1, renderedAt = 0;
+  let gameTick = -1, notebookStage = -1;
   const totalDuration = 30, stageDuration = 5;
   const setButtons = () => { pauseButton.textContent = playing ? 'Pause walkthrough' : 'Play walkthrough'; pauseButton.setAttribute('aria-pressed',String(!playing)); };
   const drawNotebook = (stage, local) => {
@@ -268,9 +267,11 @@
     });
     pressureRing.material.opacity=stage>=3?Math.max(0,Math.sin(local*Math.PI*4))*.5:0;
     pressureRing.scale.setScalar(1+(local*2%1)*2);
-    const nextMap=stage<3?laptopTexture:texture;
-    if(laptopScreen.material.map!==nextMap){laptopScreen.material.map=nextMap;laptopScreen.material.needsUpdate=true;}
-    if(stage<3&&(notebookStage!==stage||stage===1)){drawNotebook(stage,local);notebookStage=stage;}
+    if(stage<3){
+      laptopScreen.material.map=laptopTexture;
+      if(notebookStage!==stage||stage===1){drawNotebook(stage,local);notebookStage=stage;}
+    }else{laptopScreen.material.map=texture;}
+    laptopScreen.material.needsUpdate=true;
     const tick=Math.floor(time*24);
     if(tick!==gameTick){
       if(stage<2){
@@ -285,14 +286,12 @@
   };
   const render = timestamp => {
     frame=0;if(!visible||document.hidden){last=0;return;}
-    if(compact&&playing&&timestamp-renderedAt<1000/30){frame=requestAnimationFrame(render);return;}
-    renderedAt=timestamp;
     if(playing&&last)elapsed+=Math.min((timestamp-last)/1000,.05);
     last=timestamp;pose(elapsed);renderer.render(scene,camera);
     if(playing)frame=requestAnimationFrame(render);
   };
   const requestRender=()=>{if(!frame&&visible&&!document.hidden)frame=requestAnimationFrame(render);};
-  const seekStage=index=>{elapsed=index*stageDuration+(index===3?2.75:1.8);last=0;playing=false;gameTick=-1;setButtons();pose(elapsed);requestRender();};
+  const seekStage=index=>{elapsed=index*stageDuration+(index===3?2.75:1.8);last=0;playing=false;gameTick=-1;setButtons();requestRender();};
   stageButtons.forEach((button,i)=>button.addEventListener('click',()=>seekStage(i)));
   stepCards.forEach((card,i)=>{
     card.setAttribute('role','button');card.tabIndex=0;card.setAttribute('aria-label',`Show step ${i+1}: ${titles[i]}`);
@@ -303,7 +302,7 @@
   replayButton.addEventListener('click',()=>{elapsed=0;last=0;playing=true;gameTick=-1;setButtons();requestRender();});
   const resize=()=>{const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<600?43:34;camera.updateProjectionMatrix();requestRender();};
   new ResizeObserver(resize).observe(viewport);
-  new IntersectionObserver(entries=>{visible=entries[entries.length-1].isIntersecting;if(visible)requestRender();else{cancelAnimationFrame(frame);frame=0;last=0;}},{threshold:.08}).observe(viewport);
+  new IntersectionObserver(entries=>{visible=entries[entries.length - 1].isIntersecting;if(visible)requestRender();else{cancelAnimationFrame(frame);frame=0;last=0;}},{threshold:.08}).observe(viewport);
   document.addEventListener('visibilitychange',()=>{last=0;requestRender();});
   motion.addEventListener('change',()=>{if(motion.matches){playing=false;setButtons();requestRender();}});
   renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();cancelAnimationFrame(frame);frame=0;host.classList.add('experience-fallback');status.textContent='Follow the six steps below to connect and play.';});

@@ -52,7 +52,7 @@ async function run() {
         assert.equal(await page.locator('#howExperience,#jumpExperience').count(), 2, 'Restored animations are missing');
         const copy = await page.locator('body').innerText();
         assert.ok(!/\b(?:demo|prototype|placeholder|coming soon)\b/i.test(copy), 'Unfinished copy remained');
-        assert.ok(!requests.some(url => /three\.min|how-it-works\.js|jumpplay-experience\.js/.test(url)), '3D scenes loaded before they were near the viewport');
+        assert.ok(requests.some(url => /three\.min/.test(url)) && requests.some(url => /how-it-works\.js/.test(url)) && requests.some(url => /jumpplay-experience\.js/.test(url)), 'Original scene scripts did not load');
         const hero = page.locator('.hero-bg-video');
         await advancing(hero);
         assert.ok(await hero.evaluate(v => v.muted && v.playsInline), 'Background video is not muted and inline');

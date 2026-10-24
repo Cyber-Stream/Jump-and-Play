@@ -49,7 +49,8 @@ const showViewport = host => host.locator('.experience-viewport').evaluate(eleme
       await page.waitForFunction(() => document.querySelector('#heroContent').classList.contains('show'));
       assert.equal(await page.locator('.platform-img-wrap').first().evaluate(e => getComputedStyle(e).animationName), 'float');
       assert.equal(await page.locator('.hero-eyebrow').evaluate(e => getComputedStyle(e, '::before').animationName), 'blink');
-      assert.ok(!requests.some(url => /three\.min\.js/.test(url)), '3D runtime eagerly loaded over the hero');
+      assert.ok(requests.some(url => /three\.min\.js\?rev=original-602d465/.test(url)), 'Original 3D runtime did not load with the page');
+      assert.equal(await page.locator('#howExperience[data-ready="true"],#jumpExperience[data-ready="true"]').count(), 2, 'Original scenes did not initialize with the page');
       const rendered = [];
       for (const id of ['howExperience', 'jumpExperience']) {
         const host = page.locator(`#${id}`);
@@ -97,7 +98,7 @@ const showViewport = host => host.locator('.experience-viewport').evaluate(eleme
       assert.equal(await page.locator('.platform-img-wrap').first().evaluate(e => getComputedStyle(e).animationName), 'none');
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Mobile layout overflow');
       assert.deepEqual(errors, []);
-      console.log(JSON.stringify({ browser: name, floatingImages: true, pulsingAccents: true, lazyLoad: true, offscreenPause: true, reducedMotion: true, scenes: rendered }));
+      console.log(JSON.stringify({ browser: name, floatingImages: true, pulsingAccents: true, originalScenesInitialized: true, offscreenPause: true, reducedMotion: true, scenes: rendered }));
       await context.close();
     } finally { await browser.close(); }
   }
