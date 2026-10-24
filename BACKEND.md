@@ -1,11 +1,13 @@
 # Jump & Play backend
 
-The contact form saves product enquiries in PostgreSQL, then offers a WhatsApp link containing the original form details and saved reference. Visitors must tap Send in WhatsApp to deliver their message. If saving fails because of a network issue, server outage, or submission limit, the prefilled link remains available without claiming the enquiry was saved. A copy-message button and manual-copy fallback support browsers that cannot prefill or use the clipboard. There is no admin dashboard, public enquiry listing, automatic email, payment processing, or appointment reservation. A saved enquiry is a request for follow-up, not a confirmed booking.
+The contact form opens WhatsApp directly with the visitor's name, organization, email, phone, and message prefilled for +8801533580699. Visitors tap Send inside WhatsApp to deliver the message. This handoff runs synchronously from the submit gesture and does not wait for, or make, a database request. The form retains entered values; manual WhatsApp and copy-message fallbacks remain available when visitors return to the site.
+
+The PostgreSQL enquiry API remains available for explicit integrations, with no admin dashboard or public enquiry listing. A database record is not a WhatsApp delivery confirmation. No automatic WhatsApp sending or email service is configured.
 
 ## Production
 
 - Website: https://jump-and-play-bd.vercel.app
-- `POST /api/enquiries`: submit JSON containing `name`, `venue`, `email`, `phone`, `message`, and an empty `website` honeypot.
+- The website form uses WhatsApp directly. `POST /api/enquiries` remains available for separate integrations: submit JSON containing `name`, `venue`, `email`, `phone`, `message`, and an empty `website` honeypot.
 - Send a UUID v4 in `Idempotency-Key`. Retry the same payload with the same key after a timeout. Changed payloads require a new key.
 - `GET /api/health`: checks the database migration is available; exposes no credentials or visitor information.
 - Enquiries are available to the owner through the Neon database linked to the `jump-and-play` project in Vercel Storage. No enquiry data is exposed through a public read API.
@@ -22,7 +24,7 @@ npm run build
 npm run dev
 ```
 
-The local site runs at http://localhost:3000. Database integration tests use uniquely labelled test data and remove their own rows. `python scripts/check-backend-browser.py` runs a real Chrome form test against the local server, including a network failure and safe retry. It uses the existing local websocket test dependency in `.video-tools`.
+The local site runs at http://localhost:3000. Database integration tests use uniquely labelled test data and remove their own rows. `npm run test:whatsapp` verifies direct WhatsApp navigation in Chromium, WebKit, and Firefox, including validation and Unicode. It intercepts the external navigation, sends no WhatsApp messages, and writes no database records. `python scripts/check-backend-browser.py` remains a compatibility wrapper for this test.
 
 ## Operational behavior
 

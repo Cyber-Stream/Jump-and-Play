@@ -59,60 +59,30 @@
     copy.hidden = false;
     copy.style.display = 'inline-block';
   };
-  let pending = false, lastPayload = '', key;
-  window.submitEnquiry = async event => {
+  window.submitEnquiry = event => {
     event.preventDefault();
-    if (pending) return;
     for (const field of form.elements) {
       if (field.required && typeof field.value === 'string') field.setCustomValidity(field.value.trim() ? '' : 'Please fill out this field.');
     }
-    if (!form.reportValidity()) return;
     const data = new FormData(form);
-    const payload = Object.fromEntries(['name', 'venue', 'email', 'phone', 'message', 'website'].map(name => [name, String(data.get(name) || '').trim()]));
-    const serialized = JSON.stringify(payload);
-    if (!key || serialized !== lastPayload) { key = crypto.randomUUID(); lastPayload = serialized; }
-    const whatsappUrl = buildWhatsAppRequest(form);
-    pending = true;
-    button.disabled = true;
-    button.textContent = 'Sending request…';
-    form.setAttribute('aria-busy', 'true');
-    status.textContent = 'Saving your request securely…';
-    whatsapp.hidden = true;
-    whatsapp.style.display = 'none';
-    instructions.hidden = true;
-    copy.hidden = true;
-    copy.style.display = 'none';
+    const phone = String(data.get('phone') || '').trim();
+    const digits = phone.replace(/\D/g, '');
+    const phoneField = form.elements.namedItem('phone');
+    phoneField.setCustomValidity(/^[+\d\s().-]+$/.test(phone) && digits.length >= 7 && digits.length <= 15 ? '' : 'Enter a valid phone number with 7–15 digits.');
+    if (!form.reportValidity()) return;
+    if (String(data.get('website') || '').trim()) {
+      status.textContent = 'Please leave the website field empty and try again.';
+      return;
+    }
     copyStatus.textContent = '';
     manualCopy.hidden = true;
     manualCopy.value = '';
-    messageToCopy = '';
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-    try {
-      const response = await fetch('/api/enquiries', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key }, body: serialized, signal: controller.signal, credentials: 'same-origin' });
-      const result = await response.json().catch(() => ({ message: 'The server could not confirm your request. Please try again.' }));
-      if (!response.ok) {
-        if (result.code === 'idempotency_conflict') key = null;
-        for (const [name, message] of Object.entries(result.fields || {})) {
-          const field = form.elements.namedItem(name);
-          if (field?.setCustomValidity) field.setCustomValidity(message);
-        }
-        form.reportValidity();
-        throw Object.assign(new Error(result.message || 'Unable to save your request right now.'), { allowWhatsApp: response.status >= 500 || response.status === 429 });
-      }
-      if (!result.ok || typeof result.reference !== 'string') throw Object.assign(new Error('We could not confirm your submission. Please retry or continue on WhatsApp.'), { allowWhatsApp: true });
-      status.textContent = `Your request is saved. Reference: ${result.reference}. To discuss your request directly with Shafin, continue on WhatsApp.`;
-      const savedUrl = new URL(whatsappUrl);
-      savedUrl.searchParams.set('text', `${savedUrl.searchParams.get('text')}\n\nRequest reference: ${result.reference}`);
-      showWhatsApp(savedUrl.href);
-      form.reset(); key = null; lastPayload = '';
-    } catch (error) {
-      const network = error.name === 'AbortError' || error instanceof TypeError;
-      status.textContent = `${network ? 'We could not confirm your submission. Please try again; retries will not create duplicate requests.' : error.message} You can also reach us directly on WhatsApp using the contact details beside this form.`;
-      if (network || error.allowWhatsApp) showWhatsApp(whatsappUrl);
-    } finally {
-      clearTimeout(timeout); pending = false; button.disabled = false;
-      button.textContent = 'Send Request'; form.removeAttribute('aria-busy');
-    }
+    const whatsappUrl = buildWhatsAppRequest(form);
+    showWhatsApp(whatsappUrl);
+    status.textContent = 'Opening WhatsApp with your request. Review the message and tap Send in WhatsApp.';
+    // Navigate during the submit gesture: no async wait or popup blocking on mobile.
+    // Keep the form intact so visitors can return and retry or copy their message.
+    window.location.assign(whatsappUrl);
   };
+  button.disabled = false;
 })();
