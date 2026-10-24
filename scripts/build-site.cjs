@@ -19,7 +19,7 @@ const enqueue = value => {
   if (!source.startsWith(path.join(root, 'assets') + path.sep)) throw new Error('Invalid asset path');
   files.add(relative);
 };
-for (const match of html.matchAll(/(?:src|href|poster)="([^"]+)"/g)) enqueue(match[1]);
+for (const match of html.matchAll(/(?:src|href|poster|data-scene|data-runtime)="([^"]+)"/g)) enqueue(match[1]);
 for (const relative of files) {
   const source = path.join(root, relative);
   if (relative.endsWith('.css')) {

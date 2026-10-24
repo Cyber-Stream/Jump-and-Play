@@ -49,10 +49,10 @@ async function run() {
         await page.evaluate(() => skipIntro());
         await page.waitForTimeout(1000);
         await noOverflow(page, `${name} ${width}`);
-        assert.equal(await page.locator('#howExperience,#jumpExperience,canvas').count(), 0, 'Simulated demo remained');
+        assert.equal(await page.locator('#howExperience,#jumpExperience').count(), 2, 'Restored animations are missing');
         const copy = await page.locator('body').innerText();
         assert.ok(!/\b(?:demo|prototype|placeholder|coming soon)\b/i.test(copy), 'Unfinished copy remained');
-        assert.ok(!requests.some(url => /three\.min|scene-loader|how-it-works\.js|jumpplay-experience\.js/.test(url)), 'Unused 3D code loaded');
+        assert.ok(!requests.some(url => /three\.min|how-it-works\.js|jumpplay-experience\.js/.test(url)), '3D scenes loaded before they were near the viewport');
         const hero = page.locator('.hero-bg-video');
         await advancing(hero);
         assert.ok(await hero.evaluate(v => v.muted && v.playsInline), 'Background video is not muted and inline');

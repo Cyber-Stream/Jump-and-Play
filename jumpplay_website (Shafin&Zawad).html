@@ -154,6 +154,32 @@
 
 
 
+    <div class="jump-experience how-walkthrough reveal" id="howExperience" data-scene="/assets/experience/how-it-works.js">
+      <div class="experience-heading">
+        <div>
+          <span class="experience-eyebrow">From setup to play / Interactive 3D</span>
+          <span class="walkthrough-counter">01 / 06</span>
+          <h3 class="walkthrough-title">Power on the platform</h3>
+          <p class="walkthrough-description">The rechargeable controller powers the platform. Look for the ready light.</p>
+        </div>
+        <div class="experience-controls" aria-label="Setup walkthrough controls">
+          <button class="experience-pause" type="button" aria-pressed="false">Pause walkthrough</button>
+          <button class="experience-replay" type="button">Replay</button>
+        </div>
+      </div>
+      <div class="experience-viewport"><span class="experience-status" role="status">Loading the setup walkthrough</span></div>
+      <div class="walkthrough-progress" aria-hidden="true"><span class="walkthrough-progress-fill"></span></div>
+      <div class="walkthrough-stage-buttons" role="group" aria-label="Explore the six setup steps">
+        <button class="walkthrough-stage-button" type="button" aria-pressed="true" aria-label="Show step 1: Power on"><span>01</span>Power on</button>
+        <button class="walkthrough-stage-button" type="button" aria-pressed="false" aria-label="Show step 2: Bluetooth"><span>02</span>Bluetooth</button>
+        <button class="walkthrough-stage-button" type="button" aria-pressed="false" aria-label="Show step 3: Launch game"><span>03</span>Launch game</button>
+        <button class="walkthrough-stage-button" type="button" aria-pressed="false" aria-label="Show step 4: Step &amp; jump"><span>04</span>Step &amp; jump</button>
+        <button class="walkthrough-stage-button" type="button" aria-pressed="false" aria-label="Show step 5: Sensors"><span>05</span>Sensors</button>
+        <button class="walkthrough-stage-button" type="button" aria-pressed="false" aria-label="Show step 6: Play"><span>06</span>Play</button>
+      </div>
+      <p class="walkthrough-help">Watch the full sequence, or select a step to explore it at your own pace.</p>
+    </div>
+
     <div class="steps-track">
       <div class="step-card reveal">
         <div class="step-num">01</div>
@@ -256,6 +282,26 @@
     </div>
 
 
+
+    <div class="jump-experience reveal" id="jumpExperience" data-scene="/assets/experience/jumpplay-experience.js">
+      <div class="experience-heading">
+        <div>
+          <span class="experience-eyebrow">The connection / Live 3D</span>
+          <h3>One jump.<br><span>Two worlds in sync.</span></h3>
+          <p>Step onto the platform. Jump in the real world. Watch the dinosaur respond on screen.</p>
+        </div>
+        <div class="experience-controls" aria-label="3D animation controls">
+          <button class="experience-pause" type="button" aria-pressed="false">Pause animation</button>
+          <button class="experience-replay" type="button">Replay</button>
+        </div>
+      </div>
+      <div class="experience-viewport"><span class="experience-status" role="status">Loading the 3D experience</span></div>
+      <div class="experience-steps" aria-label="How your jump controls the game">
+        <div class="experience-step is-active"><small>01 / MOVEMENT</small><h4>You jump.</h4><p>The platform senses the change in pressure beneath your feet.</p></div>
+        <div class="experience-step"><small>02 / CONNECTION</small><h4>The signal travels.</h4><p>The ESP32 controller sends your movement wirelessly to the game.</p></div>
+        <div class="experience-step"><small>03 / RESPONSE</small><h4>The dinosaur jumps.</h4><p>Your physical movement becomes an on-screen action.</p></div>
+      </div>
+    </div>
 
     <div class="action-grid">
       <div class="action-card reveal">
@@ -571,5 +617,6 @@
 
 <script src="/assets/experience/contact-form.js" defer></script>
 <script src="/assets/media.js" defer></script>
+<script src="/assets/experience/scene-loader.js" data-runtime="/assets/experience/three.min.js" defer></script>
 </body>
 </html>

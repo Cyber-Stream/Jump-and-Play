@@ -8,13 +8,13 @@
     const intro = document.getElementById('introScreen');
     const content = document.getElementById('heroContent');
     intro.classList.add('hide');
-    content.classList.add('show');
     setTimeout(() => {
       intro.style.display = 'none';
-    }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 560);
+      content.classList.add('show');
+    }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 800);
   }
 
-  setTimeout(triggerTransition, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1400);
+  setTimeout(triggerTransition, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 2200);
 
   // Reveal each section once, with bounded sibling staggering.
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -29,7 +29,7 @@
     }, { threshold: .08, rootMargin: '0px 0px -24px 0px' });
     reveals.forEach(el => {
       const siblings = [...el.parentElement.children].filter(child => child.classList.contains('reveal'));
-      el.style.setProperty('--reveal-delay', `${Math.min(siblings.indexOf(el), 3) * 60}ms`);
+      el.style.setProperty('--reveal-delay', `${Math.min(siblings.indexOf(el), 3) * 85}ms`);
       obs.observe(el);
     });
     document.documentElement.classList.add('motion-ready');
@@ -41,7 +41,8 @@
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.closest('.action-card').classList.add('copy-visible');
-        copyObserver.unobserve(entry.target);
+      } else {
+        entry.target.closest('.action-card').classList.remove('copy-visible');
       }
     });
   }, { threshold: .3 });
@@ -56,12 +57,18 @@
         const span = document.createElement('span');
         span.className = 'action-word';
         span.setAttribute('aria-hidden', 'true');
-        span.style.setProperty('--word-delay', `${Math.min(wordIndex++ * 24, 360)}ms`);
+        span.style.setProperty('--word-delay', `${200 + wordIndex++ * 95}ms`);
         span.textContent = word;
         element.append(span);
       });
     });
     copyObserver.observe(card.querySelector('.action-info'));
+    card.querySelector('video').addEventListener('play', () => {
+      if (reducedMotion.matches) return;
+      card.classList.remove('copy-visible');
+      void card.offsetWidth;
+      card.classList.add('copy-visible');
+    });
   });
 
   reducedMotion.addEventListener('change', () => {
@@ -124,7 +131,7 @@
     if (!techGallery.open || document.hidden) { carouselTime = 0; return; }
     const delta = carouselTime ? Math.min((time - carouselTime) / 1000, .05) : 0;
     carouselTime = time;
-    if (!carouselPaused && !carouselDragging && !reducedMotion.matches) carouselTarget -= delta * 12;
+    if (!carouselPaused && !carouselDragging && !reducedMotion.matches) carouselTarget -= delta * 18;
     carouselAngle = reducedMotion.matches || carouselDragging ? carouselTarget : carouselAngle + (carouselTarget - carouselAngle) * (1 - Math.exp(-delta * 9));
     carouselRing.style.transform = `rotateY(${carouselAngle}deg)`;
     if ((!carouselPaused && !reducedMotion.matches) || carouselDragging || Math.abs(carouselTarget - carouselAngle) > .01) requestCarousel();

@@ -6,28 +6,33 @@
   --motion-medium: 320ms;
   --motion-entrance: 620ms;
 }
-.intro-screen { transition: opacity 460ms var(--ease-out), transform 560ms var(--ease-out); }
+.intro-screen { transition: opacity 800ms var(--ease-out), transform 800ms var(--ease-out); }
 .intro-screen.hide { transform: scale(1.025); }
 .hero-content { transition: opacity 700ms var(--ease-out) 100ms, transform 800ms var(--ease-out) 100ms; }
-.intro-logo { animation-duration: 900ms; }
+.intro-logo { animation-duration: 1200ms; }
 @keyframes logoReveal {
-  from { opacity: 0; transform: translate3d(0, 24px, 0) scale(.98); }
+  from { opacity: 0; transform: translate3d(0, 40px, 0) scale(.95); }
   to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
-.intro-logo::after { width: 60%; transform: scaleX(0); animation: lineGrow 650ms var(--ease-out) 500ms forwards; }
+.intro-logo::after { width: 60%; transform: scaleX(0); animation: lineGrow 800ms var(--ease-out) 800ms forwards; }
 @keyframes lineGrow { to { transform: scaleX(1); } }
-.intro-tagline { animation-delay: 650ms; animation-duration: 550ms; }
-.intro-skip { animation-delay: 900ms; animation-duration: 350ms; }
+.intro-tagline { animation-delay: 1200ms; animation-duration: 800ms; }
+.intro-skip { animation-delay: 1800ms; animation-duration: 600ms; }
+.platform-img-wrap { animation: float 4s ease-in-out infinite; }
+.platform-img-wrap:nth-child(2) { animation-delay: -2s; }
+.hero-orb-1 { animation-duration: 6s; }
+.hero-orb-2 { animation-duration: 8s; }
+.hero-eyebrow::before { animation: blink 1.5s ease-in-out infinite; }
 .motion-ready .reveal {
   transform: translate3d(0, 18px, 0);
   transition: opacity var(--motion-entrance) var(--ease-out), transform 720ms var(--ease-out);
   transition-delay: var(--reveal-delay, 0ms);
 }
 .motion-ready .reveal.visible { transform: none; }
-.copy-visible .action-word { animation: actionWriteIn 480ms var(--ease-out) both; animation-delay: var(--word-delay, 0ms); }
-.copy-visible .action-info h3 { animation: none; }
+.copy-visible .action-word { animation: actionWriteIn 850ms var(--ease-out) both; animation-delay: var(--word-delay, 0ms); }
+.copy-visible .action-info h3 { animation: actionHeadingIn 1s var(--ease-out) both; }
 @keyframes actionWriteIn {
-  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  from { opacity: 0; transform: translate3d(0, 18px, 0); }
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 .action-info::after { transition: transform 650ms var(--ease-out) 150ms; }
@@ -47,6 +52,15 @@
 .carousel-ring { will-change: transform; }
 .nav-indicator { width: 1px; transform-origin: left center; transition: transform 360ms var(--ease-out), opacity 180ms ease; }
 .experience-viewport { contain: layout paint; }
+.experience-fallback .walkthrough-stage-buttons, .experience-fallback .walkthrough-progress { display: none; }
+@media (max-width: 640px) {
+  .experience-controls { flex-wrap: wrap; }
+  .experience-controls button { min-height: 44px; }
+  .experience-steps { grid-template-columns: 1fr; }
+  .experience-step + .experience-step { border-left: 0; border-top: 1px solid rgba(255,255,255,.08); }
+  .experience-status { white-space: normal; width: min(90%, 28rem); text-align: center; }
+  .how-walkthrough .experience-heading { min-height: 0; }
+}
 .hero { min-height: 100svh; display: block; padding: 0; }
 /* Keep the portrait footage framed around the introduction, independent of the photos. */
 .hero-stage {

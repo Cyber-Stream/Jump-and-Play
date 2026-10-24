@@ -7,6 +7,7 @@
   const status = host.querySelector('.experience-status');
   const steps = [...host.querySelectorAll('.experience-step')];
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  const compact = matchMedia('(pointer: coarse)').matches || innerWidth < 768;
   let renderer;
   try {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
@@ -16,7 +17,7 @@
     pauseButton.disabled = true; replayButton.disabled = true;
     return;
   }
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, compact ? 1.25 : 1.75));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -33,7 +34,7 @@
   scene.add(new THREE.HemisphereLight(0xd3eaff, 0x22304e, 2.2));
   const key = new THREE.DirectionalLight(0xfff0dd, 4);
   key.position.set(-4, 10, 7); key.castShadow = true;
-  key.shadow.mapSize.set(1024, 1024);
+  key.shadow.mapSize.set(compact ? 512 : 1024, compact ? 512 : 1024);
   Object.assign(key.shadow.camera, { left: -9, right: 9, top: 8, bottom: -8 });
   key.shadow.bias = -.0005; scene.add(key);
   const rim = new THREE.DirectionalLight(0x53bfff, 2.8); rim.position.set(5, 6, -6); scene.add(rim);
@@ -155,7 +156,7 @@
     texture.needsUpdate = true;
   };
   let playing = !motion.matches, visible = false, frame = 0, last = 0, elapsed = 0, lastState = -1;
-  let pointerX = 0, pointerY = 0, gameTick = -1;
+  let pointerX = 0, pointerY = 0, gameTick = -1, renderedAt = 0;
   const setButtons = () => { pauseButton.textContent = playing ? 'Pause animation' : 'Play animation'; pauseButton.setAttribute('aria-pressed', String(!playing)); };
   const pose = time => {
     const phase = time % 3.6 / 3.6;
@@ -197,6 +198,8 @@
   const render = timestamp => {
     frame = 0;
     if (!visible || document.hidden) { last = 0; return; }
+    if (compact && playing && timestamp - renderedAt < 1000 / 30) { frame = requestAnimationFrame(render); return; }
+    renderedAt = timestamp;
     if (playing && last) elapsed += Math.min((timestamp - last) / 1000, .05);
     last = timestamp; pose(elapsed);
     camera.position.x += (6.5 + pointerX * .5 - camera.position.x) * .05;
@@ -213,7 +216,7 @@
   };
   new ResizeObserver(resize).observe(viewport);
   new IntersectionObserver(entries => {
-    visible = entries[0].isIntersecting;
+    visible = entries[entries.length - 1].isIntersecting;
     if (!visible) { cancelAnimationFrame(frame); frame = 0; last = 0; }
     else requestRender();
   }, { threshold: .08 }).observe(viewport);
