@@ -12,3 +12,5 @@ qa-*.txt
 !/jumpplay-action-highlight-poster.jpg
 public
 node_modules
+.env*
+scripts/site-inspection.txt

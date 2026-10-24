@@ -6,3 +6,6 @@ __pycache__/
 .vercel/
 public/
 node_modules/
+.env*
+!.env.example
+scripts/site-inspection.txt

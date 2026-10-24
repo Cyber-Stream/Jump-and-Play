@@ -3,6 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "node scripts/build-site.cjs"
+    "build": "node scripts/build-site.cjs",
+    "test": "node --test tests/*.test.cjs",
+    "db:migrate": "node --env-file=.env.local scripts/migrate.cjs",
+    "test:database": "node --env-file=.env.local --test tests/database.integration.cjs",
+    "dev": "node --env-file-if-exists=.env.local scripts/dev-server.cjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }
