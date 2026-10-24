@@ -1,6 +1,6 @@
 # Jump & Play backend
 
-The contact form saves demonstration enquiries in PostgreSQL, then offers a WhatsApp link containing the original form details and saved reference. Visitors must tap Send in WhatsApp to deliver their message. If saving fails because of a network issue, server outage, or submission limit, the prefilled link remains available without claiming the enquiry was saved. A copy-message button and manual-copy fallback support browsers that cannot prefill or use the clipboard. There is no admin dashboard, public enquiry listing, automatic email, payment processing, or appointment reservation. A saved enquiry is a request for follow-up, not a confirmed booking.
+The contact form saves product enquiries in PostgreSQL, then offers a WhatsApp link containing the original form details and saved reference. Visitors must tap Send in WhatsApp to deliver their message. If saving fails because of a network issue, server outage, or submission limit, the prefilled link remains available without claiming the enquiry was saved. A copy-message button and manual-copy fallback support browsers that cannot prefill or use the clipboard. There is no admin dashboard, public enquiry listing, automatic email, payment processing, or appointment reservation. A saved enquiry is a request for follow-up, not a confirmed booking.
 
 ## Production
 
@@ -40,3 +40,9 @@ The local site runs at http://localhost:3000. Database integration tests use uni
 Apply the idempotent database migration before deploying API changes. Run tests and the static build, then `vercel deploy --prod --scope astro-kinetics`. The chosen hostname is a project production domain and should follow future production deployments. Check `/api/health` and the form after each release.
 
 GitHub push still requires GitHub authorization. A direct Vercel deployment does not publish local commits to GitHub.
+
+## Responsive site and media
+
+The production build publishes only assets referenced by the final HTML and CSS. Simulated 3D scenes and prototype/demo copy are excluded. Original footage remains in the workspace; runtime videos use H.264, yuv420p, AAC when audio exists, and fast-start MP4 metadata. Mobile background video is selected below 768 px. Posters, explicit play/pause controls, retry handling, and direct video links cover blocked autoplay and playback errors. Background video pauses offscreen and in hidden tabs; reduced-motion and data-saving preferences disable automatic playback while preserving manual play.
+
+Run `npm run test:responsive` after `npm run build` and `npm run dev` to test Chromium, WebKit, and Firefox across phone, tablet, and desktop viewports. Install test engines once with `npx playwright install webkit firefox`; Chromium uses the installed Google Chrome. `npm run test:responsive -- https://jump-and-play-bd.vercel.app` checks the deployed site. Results and screenshots are stored in ignored `.motion-qa/`. Emulation checks browser behavior and responsive layouts; physical-device and low-power-mode testing still depends on real hardware.

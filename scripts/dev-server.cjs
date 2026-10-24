@@ -20,7 +20,20 @@ http.createServer(async (req, res) => {
     const file = path.resolve(root, '.' + relative);
     if (!file.startsWith(root + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404); return res.end('Not found'); }
     res.setHeader('Content-Type', types[path.extname(file)] || 'application/octet-stream');
+    const size = fs.statSync(file).size;
+    res.setHeader('Accept-Ranges', 'bytes');
+    let start = 0, end = size - 1;
+    if (req.headers.range) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
+      if (!match || (!match[1] && !match[2])) { res.writeHead(416, { 'Content-Range': `bytes */${size}` }); return res.end(); }
+      start = match[1] ? Number(match[1]) : Math.max(0, size - Number(match[2]));
+      end = match[1] && match[2] ? Math.min(Number(match[2]), size - 1) : size - 1;
+      if (start >= size || end < start) { res.writeHead(416, { 'Content-Range': `bytes */${size}` }); return res.end(); }
+      res.statusCode = 206;
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
+    }
+    res.setHeader('Content-Length', end - start + 1);
     if (req.method === 'HEAD') return res.end();
-    pipeline(fs.createReadStream(file), res, () => {});
+    pipeline(fs.createReadStream(file, { start, end }), res, () => {});
   } catch { if (!res.headersSent) res.writeHead(500); res.end('Request failed'); }
 }).listen(3000, '127.0.0.1', () => console.log('Jump & Play: http://localhost:3000'));

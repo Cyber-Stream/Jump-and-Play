@@ -9,3 +9,5 @@ node_modules/
 .env*
 !.env.example
 scripts/site-inspection.txt
+scripts/motion-inspection.*
+.motion-qa/

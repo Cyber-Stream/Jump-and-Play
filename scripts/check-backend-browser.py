@@ -63,14 +63,14 @@ try:
       for (const [key, value] of Object.entries(values)) form.elements[key].value = value;
       form.requestSubmit(); })()''')
     for _ in range(120):
-        if evaluate("document.querySelector('[role=status]').textContent.includes('could not confirm')"): break
+        if evaluate("document.querySelector('.contact-form [role=status]').textContent.includes('could not confirm')"): break
         time.sleep(.2)
     else: raise RuntimeError('Network failure did not show a retry message')
     assert evaluate("document.querySelector('#contact-email').value") == email
     assert evaluate("[...document.querySelector('.contact-form').querySelectorAll('a')].some(a => a.textContent === 'Continue on WhatsApp' && !a.hidden)"), 'WhatsApp fallback missing after network failure'
     evaluate("document.querySelector('.contact-form').requestSubmit()")
     for _ in range(150):
-        text = evaluate("document.querySelector('[role=status]').textContent")
+        text = evaluate("document.querySelector('.contact-form [role=status]').textContent")
         if 'Your request is saved.' in text: break
         time.sleep(.2)
     else: raise RuntimeError('Submission failed: ' + str(text))
@@ -133,11 +133,11 @@ try:
       for (const [key, value] of Object.entries(values)) form.elements[key].value = value;
       form.requestSubmit(); })()''')
     for _ in range(50):
-        if evaluate("document.querySelector('[role=status]').textContent.includes('server could not confirm')"): break
+        if evaluate("document.querySelector('.contact-form [role=status]').textContent.includes('server could not confirm')"): break
         time.sleep(.1)
     fallback = evaluate("""(() => {
       const link = [...document.querySelector('.contact-form').querySelectorAll('a')].find(a => a.textContent === 'Continue on WhatsApp');
-      return { shown: !link.hidden, text: new URL(link.href).searchParams.get('text'), message: document.querySelector('[role=status]').textContent };
+      return { shown: !link.hidden, text: new URL(link.href).searchParams.get('text'), message: document.querySelector('.contact-form [role=status]').textContent };
     })()""")
     assert fallback['shown'] and all(v in fallback['text'] for v in values.values())
     assert 'Your request is saved.' not in fallback['message'] and 'Request reference:' not in fallback['text']

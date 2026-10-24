@@ -101,7 +101,7 @@
         throw Object.assign(new Error(result.message || 'Unable to save your request right now.'), { allowWhatsApp: response.status >= 500 || response.status === 429 });
       }
       if (!result.ok || typeof result.reference !== 'string') throw Object.assign(new Error('We could not confirm your submission. Please retry or continue on WhatsApp.'), { allowWhatsApp: true });
-      status.textContent = `Your request is saved. Reference: ${result.reference}. To arrange your demonstration directly with Shafin, continue on WhatsApp.`;
+      status.textContent = `Your request is saved. Reference: ${result.reference}. To discuss your request directly with Shafin, continue on WhatsApp.`;
       const savedUrl = new URL(whatsappUrl);
       savedUrl.searchParams.set('text', `${savedUrl.searchParams.get('text')}\n\nRequest reference: ${result.reference}`);
       showWhatsApp(savedUrl.href);

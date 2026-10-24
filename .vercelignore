@@ -14,3 +14,5 @@ public
 node_modules
 .env*
 scripts/site-inspection.txt
+scripts/motion-inspection.*
+.motion-qa
