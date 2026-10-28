@@ -778,7 +778,9 @@
   @media (max-width: 768px) {
     nav { gap: 20px; padding: .8rem 1rem; }
     .nav-logo { flex-shrink: 0; font-size: 1rem; }
-    .nav-links { display: flex; flex: 1; min-width: 0; gap: 20px; overflow-x: auto; scrollbar-width: none; padding-inline: 12px; }
+    .nav-links { display: flex; flex: 1; min-width: 0; gap: 20px; overflow-x: auto; scrollbar-width: none;
+      /* The scrolling row clips overflow; padding gives the glass pill's glow room without shifting the layout. */
+      padding: 10px 12px; margin-block: -10px; }
     .nav-links::-webkit-scrollbar { display: none; }
     .nav-links a { white-space: nowrap; font-size: .72rem; }
     .nav-links .nav-cta { padding: .5rem .85rem; }
