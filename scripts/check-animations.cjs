@@ -25,7 +25,7 @@ const showViewport = host => host.locator('.experience-viewport').evaluate(eleme
     ['webkit-phone', webkit, { ...devices['iPhone 13'] }]
   ]) {
     if (process.env.QA_BROWSER && !name.startsWith(process.env.QA_BROWSER)) continue;
-    const browser = await engine.launch(engine === chromium ? { executablePath: 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe', headless: true } : { headless: true });
+    const browser = await engine.launch(engine === chromium ? { channel: 'chrome', headless: true } : { headless: true });
     try {
       const context = await browser.newContext(options);
       await context.addInitScript(() => {

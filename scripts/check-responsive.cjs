@@ -33,7 +33,7 @@ async function noOverflow(page, label) {
 async function run() {
   for (const [name, type, sizes] of configurations) {
     if (process.env.QA_BROWSER && name !== process.env.QA_BROWSER) continue;
-    const browser = await type.launch(name === 'chromium' ? { executablePath: 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe', headless: true } : { headless: true });
+    const browser = await type.launch(name === 'chromium' ? { channel: 'chrome', headless: true } : { headless: true });
     try {
       for (const [width, height] of sizes) {
         if (process.env.QA_WIDTH && width !== Number(process.env.QA_WIDTH)) continue;

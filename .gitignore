@@ -11,3 +11,10 @@ node_modules/
 scripts/site-inspection.txt
 scripts/motion-inspection.*
 .motion-qa/
+.edge-qa*/
+.video-tools/
+.*-qa.html
+/*.png
+/*-review.jpg
+/video-*.jpg
+/qa-*-dom.txt

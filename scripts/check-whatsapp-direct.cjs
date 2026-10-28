@@ -10,7 +10,7 @@ const cases = [
 ];
 async function main() {
   for (const [name, type, width, height, mobile] of cases) {
-    const browser = await type.launch(type === chromium ? { executablePath: 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe', headless: true } : { headless: true });
+    const browser = await type.launch(type === chromium ? { channel: 'chrome', headless: true } : { headless: true });
     try {
       const context = await browser.newContext({ viewport: { width, height }, isMobile: mobile, hasTouch: mobile });
       let handoff, writes = 0;
