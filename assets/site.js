@@ -255,32 +255,47 @@
   // A glass pill that follows the scroll: it rests on the current link and glides to the next one as that section arrives.
   const trackedLinks = [...trackerTabs.querySelectorAll('a[href^="#"]')]
     .map(link => ({ link, section: document.getElementById(link.hash.slice(1)) })).filter(item => item.section);
-  const pill = { x: 0, y: 0, w: 0, h: 0, o: 0 }, pillTarget = { ...pill };
+  // The pill's left and right edges ride separate springs, so it stretches toward the next link and settles there.
+  const pill = { l: 0, r: 0, y: 0, h: 0, o: 0, vl: 0, vr: 0 }, pillTarget = { l: 0, r: 0, y: 0, h: 0, o: 0 };
   let pillFrame = 0, pillPlaced = false, pillTime = 0;
   const clamp01 = value => Math.min(1, Math.max(0, value));
-  const smoothstep = value => value * value * (3 - 2 * value);
+  const smootherstep = value => value * value * value * (value * (value * 6 - 15) + 10);
   const linkBox = link => {
     const cta = link.classList.contains('nav-cta'), padX = cta ? 5 : 12;
     const h = Math.min(cta ? link.offsetHeight + 10 : 34, trackerTabs.clientHeight);
     const y = Math.min(Math.max(link.offsetTop + link.offsetHeight / 2 - h / 2, 0), trackerTabs.clientHeight - h);
-    return { x: link.offsetLeft - padX, y, w: link.offsetWidth + padX * 2, h };
+    return { l: link.offsetLeft - padX, r: link.offsetLeft + link.offsetWidth + padX, y, h };
   };
   const drawPill = () => {
     trackerIndicator.style.opacity = pill.o.toFixed(3);
-    trackerIndicator.style.width = `${pill.w}px`;
+    trackerIndicator.style.width = `${Math.max(pill.r - pill.l, 0)}px`;
     trackerIndicator.style.height = `${pill.h}px`;
-    trackerIndicator.style.transform = `translate3d(${pill.x}px, ${pill.y}px, 0)`;
+    trackerIndicator.style.transform = `translate3d(${pill.l}px, ${pill.y}px, 0)`;
+    // Motion energy brightens the glass while it travels.
+    trackerIndicator.style.setProperty('--pill-energy', clamp01((Math.abs(pill.vl) + Math.abs(pill.vr)) / 2400).toFixed(3));
+  };
+  const springEdge = (edge, velocity, stiffness, dt) => {
+    // Critically damped: no overshoot or wobble, just a soft arrival.
+    const accel = stiffness * (pillTarget[edge] - pill[edge]) - 2 * Math.sqrt(stiffness) * pill[velocity];
+    pill[velocity] += accel * dt;
+    pill[edge] += pill[velocity] * dt;
   };
   const stepPill = time => {
-    const delta = pillTime ? Math.min((time - pillTime) / 1000, .05) : 1 / 60;
+    let delta = pillTime ? Math.min((time - pillTime) / 1000, .05) : 1 / 60;
     pillTime = time;
-    const follow = 1 - Math.exp(-delta * 14);
-    let settled = true;
-    for (const key in pill) {
-      pill[key] += (pillTarget[key] - pill[key]) * follow;
-      if (Math.abs(pillTarget[key] - pill[key]) > (key === 'o' ? .002 : .1)) settled = false;
+    const towardRight = pillTarget.l + pillTarget.r > pill.l + pill.r;
+    const lead = 210, trail = 95;
+    while (delta > 0) {
+      const dt = Math.min(delta, 1 / 120);
+      springEdge('l', 'vl', towardRight ? trail : lead, dt);
+      springEdge('r', 'vr', towardRight ? lead : trail, dt);
+      const follow = 1 - Math.exp(-dt * 12);
+      for (const key of ['y', 'h', 'o']) pill[key] += (pillTarget[key] - pill[key]) * follow;
+      delta -= dt;
     }
-    if (settled) Object.assign(pill, pillTarget);
+    const settled = ['l', 'r', 'y', 'h'].every(key => Math.abs(pillTarget[key] - pill[key]) < .15)
+      && Math.abs(pillTarget.o - pill.o) < .002 && Math.abs(pill.vl) < 2 && Math.abs(pill.vr) < 2;
+    if (settled) { Object.assign(pill, pillTarget); pill.vl = pill.vr = 0; }
     drawPill();
     pillFrame = settled ? 0 : requestAnimationFrame(stepPill);
   };
@@ -294,18 +309,18 @@
       from = tops.reduce((current, top, i) => top <= readingLine ? i : current, 0);
       to = Math.min(from + 1, last);
       if (to !== from) {
-        const glide = Math.min(innerHeight * .4, tops[to] - tops[from]);
+        const glide = Math.min(innerHeight * .55, tops[to] - tops[from]);
         progress = clamp01((readingLine - (tops[to] - glide)) / glide);
         // The final section may never reach the reading line, so finish the glide at the bottom of the page.
         if (to === last) progress = Math.max(progress, clamp01(1 - (document.documentElement.scrollHeight - scrollY - innerHeight) / (innerHeight * .35)));
-        progress = smoothstep(progress);
+        progress = smootherstep(progress);
       }
     }
     const start = linkBox(trackedLinks[from].link), end = linkBox(trackedLinks[to].link);
-    for (const key of ['x', 'y', 'w', 'h']) pillTarget[key] = start[key] + (end[key] - start[key]) * progress;
+    for (const key of ['l', 'r', 'y', 'h']) pillTarget[key] = start[key] + (end[key] - start[key]) * progress;
     if (!pillPlaced || reducedMotion.matches) {
       pillPlaced = true; cancelAnimationFrame(pillFrame); pillFrame = 0;
-      Object.assign(pill, pillTarget); drawPill();
+      Object.assign(pill, pillTarget); pill.vl = pill.vr = 0; drawPill();
     } else if (!pillFrame) { pillTime = 0; pillFrame = requestAnimationFrame(stepPill); }
   };
   const updateSectionNavigation = () => {
