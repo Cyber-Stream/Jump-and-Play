@@ -83,9 +83,12 @@ footer { padding-bottom: max(2rem, env(safe-area-inset-bottom)); }
 .intro-skip { font-family: inherit; background: transparent; }
 .action-word { max-width: 100%; }
 @media (min-width: 769px) and (max-width: 1100px) {
-  nav { padding-inline: 1.25rem; gap: 1.5rem; }
-  .nav-links { gap: 1.1rem; }
-  .nav-links a { font-size: .78rem; }
+  nav { padding-inline: 1.25rem; gap: 1rem; }
+  /* Shrink to the space beside the logo and scroll sideways if the links still don't fit. */
+  .nav-links { gap: clamp(.7rem, 1.6vw, 1.1rem); min-width: 0; overflow-x: auto; scrollbar-width: none;
+    padding: 10px 8px; margin-block: -10px; }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a { font-size: clamp(.7rem, .95vw, .78rem); white-space: nowrap; }
   .container { padding-inline: 1.5rem; }
   .contact-grid { gap: 2rem; }
   .steps-track { grid-template-columns: repeat(3,minmax(0,1fr)); }

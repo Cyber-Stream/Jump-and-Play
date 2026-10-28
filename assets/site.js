@@ -257,11 +257,11 @@
     .map(link => ({ link, section: document.getElementById(link.hash.slice(1)) })).filter(item => item.section);
   // The pill's left and right edges ride separate springs, so it stretches toward the next link and settles there.
   const pill = { l: 0, r: 0, y: 0, h: 0, o: 0, vl: 0, vr: 0 }, pillTarget = { l: 0, r: 0, y: 0, h: 0, o: 0 };
-  let pillFrame = 0, pillPlaced = false, pillTime = 0;
+  let pillFrame = 0, pillPlaced = false, pillTime = 0, pillPadX = 12;
   const clamp01 = value => Math.min(1, Math.max(0, value));
   const smootherstep = value => value * value * value * (value * (value * 6 - 15) + 10);
   const linkBox = link => {
-    const cta = link.classList.contains('nav-cta'), padX = cta ? 5 : 12;
+    const cta = link.classList.contains('nav-cta'), padX = cta ? 5 : pillPadX;
     const h = Math.min(cta ? link.offsetHeight + 10 : 34, trackerTabs.clientHeight);
     const y = Math.min(Math.max(link.offsetTop + link.offsetHeight / 2 - h / 2, 0), trackerTabs.clientHeight - h);
     return { l: link.offsetLeft - padX, r: link.offsetLeft + link.offsetWidth + padX, y, h };
@@ -351,6 +351,8 @@
   };
   const measureNavigation = () => {
     document.documentElement.style.setProperty('--nav-height', `${mainNav.getBoundingClientRect().height}px`);
+    // Keep the pill clear of neighbouring links when the gap between them tightens.
+    pillPadX = Math.min(12, (parseFloat(getComputedStyle(trackerTabs).columnGap) || 24) * .45 + 3);
     queueSectionNavigation();
   };
   window.addEventListener('scroll', queueSectionNavigation, { passive: true });
