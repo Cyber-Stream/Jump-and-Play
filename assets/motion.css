@@ -48,7 +48,6 @@
 .tech-gallery::backdrop { animation: backdropEnter 280ms ease both; }
 @keyframes backdropEnter { from { opacity: 0; } to { opacity: 1; } }
 .carousel-ring { will-change: transform; }
-.nav-indicator { width: 1px; transform-origin: left center; transition: transform 360ms var(--ease-out), opacity 180ms ease; }
 .experience-viewport { contain: layout paint; }
 .experience-fallback .walkthrough-stage-buttons, .experience-fallback .walkthrough-progress { display: none; }
 @media (max-width: 640px) {

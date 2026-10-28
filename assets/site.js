@@ -252,11 +252,61 @@
   const trackerIndicator = document.querySelector('.nav-indicator');
   const mainNav = document.querySelector('nav');
   let activeSection = '', navFramePending = false;
-  const alignSectionIndicator = () => {
-    const active = trackerTabs.querySelector('.is-active');
-    trackerIndicator.style.opacity = active ? '1' : '0';
-    if (!active) return;
-    trackerIndicator.style.transform = `translateX(${active.offsetLeft}px) scaleX(${active.offsetWidth})`;
+  // A glass pill that follows the scroll: it rests on the current link and glides to the next one as that section arrives.
+  const trackedLinks = [...trackerTabs.querySelectorAll('a[href^="#"]')]
+    .map(link => ({ link, section: document.getElementById(link.hash.slice(1)) })).filter(item => item.section);
+  const pill = { x: 0, y: 0, w: 0, h: 0, o: 0 }, pillTarget = { ...pill };
+  let pillFrame = 0, pillPlaced = false, pillTime = 0;
+  const clamp01 = value => Math.min(1, Math.max(0, value));
+  const smoothstep = value => value * value * (3 - 2 * value);
+  const linkBox = link => {
+    const cta = link.classList.contains('nav-cta'), padX = cta ? 5 : 12;
+    const h = Math.min(cta ? link.offsetHeight + 10 : 34, trackerTabs.clientHeight);
+    const y = Math.min(Math.max(link.offsetTop + link.offsetHeight / 2 - h / 2, 0), trackerTabs.clientHeight - h);
+    return { x: link.offsetLeft - padX, y, w: link.offsetWidth + padX * 2, h };
+  };
+  const drawPill = () => {
+    trackerIndicator.style.opacity = pill.o.toFixed(3);
+    trackerIndicator.style.width = `${pill.w}px`;
+    trackerIndicator.style.height = `${pill.h}px`;
+    trackerIndicator.style.transform = `translate3d(${pill.x}px, ${pill.y}px, 0)`;
+  };
+  const stepPill = time => {
+    const delta = pillTime ? Math.min((time - pillTime) / 1000, .05) : 1 / 60;
+    pillTime = time;
+    const follow = 1 - Math.exp(-delta * 14);
+    let settled = true;
+    for (const key in pill) {
+      pill[key] += (pillTarget[key] - pill[key]) * follow;
+      if (Math.abs(pillTarget[key] - pill[key]) > (key === 'o' ? .002 : .1)) settled = false;
+    }
+    if (settled) Object.assign(pill, pillTarget);
+    drawPill();
+    pillFrame = settled ? 0 : requestAnimationFrame(stepPill);
+  };
+  const aimSectionIndicator = readingLine => {
+    if (!trackedLinks.length) return;
+    const tops = trackedLinks.map(item => item.section.getBoundingClientRect().top);
+    const last = tops.length - 1;
+    let from = 0, to = 0, progress = 0;
+    pillTarget.o = clamp01(1 - (tops[0] - readingLine) / (innerHeight * .5));
+    if (readingLine >= tops[0]) {
+      from = tops.reduce((current, top, i) => top <= readingLine ? i : current, 0);
+      to = Math.min(from + 1, last);
+      if (to !== from) {
+        const glide = Math.min(innerHeight * .4, tops[to] - tops[from]);
+        progress = clamp01((readingLine - (tops[to] - glide)) / glide);
+        // The final section may never reach the reading line, so finish the glide at the bottom of the page.
+        if (to === last) progress = Math.max(progress, clamp01(1 - (document.documentElement.scrollHeight - scrollY - innerHeight) / (innerHeight * .35)));
+        progress = smoothstep(progress);
+      }
+    }
+    const start = linkBox(trackedLinks[from].link), end = linkBox(trackedLinks[to].link);
+    for (const key of ['x', 'y', 'w', 'h']) pillTarget[key] = start[key] + (end[key] - start[key]) * progress;
+    if (!pillPlaced || reducedMotion.matches) {
+      pillPlaced = true; cancelAnimationFrame(pillFrame); pillFrame = 0;
+      Object.assign(pill, pillTarget); drawPill();
+    } else if (!pillFrame) { pillTime = 0; pillFrame = requestAnimationFrame(stepPill); }
   };
   const updateSectionNavigation = () => {
     navFramePending = false;
@@ -278,7 +328,7 @@
           trackerTabs.scrollTo({ left: left - (trackerTabs.clientWidth - selected.offsetWidth) / 2, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
       }
     }
-    alignSectionIndicator();
+    aimSectionIndicator(readingLine);
   };
   const queueSectionNavigation = () => {
     if (navFramePending) return;
