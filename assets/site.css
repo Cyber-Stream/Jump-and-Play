@@ -47,8 +47,15 @@
     text-shadow: var(--glow-blue);
     letter-spacing: 0.05em;
     text-decoration: none;
+    display: inline-flex; align-items: center;
   }
   .nav-logo span { color: var(--neon-purple); }
+  /* Brand mark after the wordmark: sized to the type, with a soft cyan/purple glow and a gentle lift on hover. */
+  .nav-mark { height: 1.8em; width: auto; margin-left: .45em; flex-shrink: 0;
+    filter: drop-shadow(0 0 6px rgba(0,229,255,.28)) drop-shadow(0 0 14px rgba(157,77,255,.3));
+    transition: transform .5s cubic-bezier(.22,1,.36,1), filter .5s ease; }
+  .nav-logo:hover .nav-mark, .nav-logo:focus-visible .nav-mark { transform: rotate(-6deg) scale(1.07);
+    filter: drop-shadow(0 0 8px rgba(0,229,255,.45)) drop-shadow(0 0 20px rgba(157,77,255,.45)); }
   .nav-links { display: flex; gap: 2rem; list-style: none; }
   .nav-links a {
     color: var(--muted); font-size: 0.9rem; text-decoration: none;
