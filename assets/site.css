@@ -340,8 +340,8 @@
   /* ── CREATOR ── */
   .creator-section { text-align: center; }
   .creators-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 2rem; max-width: 900px; margin: 0 auto 2rem;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 2rem; max-width: 1100px; margin: 0 auto 2rem;
   }
   .creator-card {
     position: relative;
@@ -369,12 +369,20 @@
     background: rgba(157,77,255,0.12); border: 1px solid rgba(157,77,255,0.3);
     color: var(--neon-purple);
   }
+  .creator-badge.web {
+    background: linear-gradient(135deg, rgba(0,229,255,0.12), rgba(157,77,255,0.12));
+    border: 1px solid rgba(120,150,255,0.35); color: #b9c8ff;
+  }
   .creator-avatar {
     width: 80px; height: 80px; border-radius: 50%;
     margin: 0 auto 1.2rem;
     display: flex; align-items: center; justify-content: center;
     font-family: 'Orbitron', monospace; font-size: 1.8rem; font-weight: 900; color: #000;
   }
+  /* Photo avatar wrapped in a brand-gradient ring. */
+  .creator-photo { display: block; object-fit: cover; padding: 3px;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple)) border-box;
+    box-shadow: 0 0 22px rgba(0,229,255,.18); }
   .creator-card h3 {
     font-family: 'Orbitron', monospace; font-size: 1.3rem; font-weight: 700;
     margin-bottom: 0.2rem;
@@ -395,8 +403,13 @@
     color: var(--muted); font-size: 0.9rem; margin-top: 1rem;
     font-style: italic;
   }
+  @media (max-width: 1024px) {
+    .creators-grid { grid-template-columns: repeat(2, 1fr); }
+    .creators-grid > .creator-card:last-child { grid-column: 1 / -1; max-width: calc(50% - 1rem); justify-self: center; }
+  }
   @media (max-width: 768px) {
     .creators-grid { grid-template-columns: 1fr; }
+    .creators-grid > .creator-card:last-child { max-width: none; }
   }
 
   /* ── CTA SECTION ── */
