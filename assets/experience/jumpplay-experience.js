@@ -2,8 +2,6 @@
   const host = document.getElementById('jumpExperience');
   if (!host) return;
   const viewport = host.querySelector('.experience-viewport');
-  const pauseButton = host.querySelector('.experience-pause');
-  const replayButton = host.querySelector('.experience-replay');
   const status = host.querySelector('.experience-status');
   const steps = [...host.querySelectorAll('.experience-step')];
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -13,7 +11,6 @@
   } catch (error) {
     host.classList.add('experience-fallback');
     status.textContent = 'Your jump → pressure sensors → wireless controller → dinosaur jump';
-    pauseButton.disabled = true; replayButton.disabled = true;
     return;
   }
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -154,9 +151,10 @@
     ctx.fillText(airborne ? 'JUMP RECEIVED' : 'YOUR MOVEMENT. YOUR GAME.', 48, 500);
     texture.needsUpdate = true;
   };
-  let playing = !motion.matches, visible = false, frame = 0, last = 0, elapsed = 0, lastState = -1;
+  // The scene plays continuously; it only stops drawing while offscreen or hidden.
+  const playing = true;
+  let visible = false, frame = 0, last = 0, elapsed = 0, lastState = -1;
   let pointerX = 0, pointerY = 0, gameTick = -1;
-  const setButtons = () => { pauseButton.textContent = playing ? 'Pause animation' : 'Play animation'; pauseButton.setAttribute('aria-pressed', String(!playing)); };
   const pose = time => {
     const phase = time % 3.6 / 3.6;
     const flight = Math.max(0, Math.min(1, (phase - .24) / .4));
@@ -217,15 +215,12 @@
     if (!visible) { cancelAnimationFrame(frame); frame = 0; last = 0; }
     else requestRender();
   }, { threshold: .08 }).observe(viewport);
-  pauseButton.addEventListener('click', () => { playing = !playing; last = 0; setButtons(); requestRender(); });
-  replayButton.addEventListener('click', () => { elapsed = 0; gameTick = -1; last = 0; playing = true; setButtons(); requestRender(); });
   viewport.addEventListener('pointermove', event => {
     if (motion.matches || event.pointerType === 'touch') return;
     const bounds = viewport.getBoundingClientRect(); pointerX = (event.clientX - bounds.left) / bounds.width - .5; pointerY = (event.clientY - bounds.top) / bounds.height - .5;
   });
   viewport.addEventListener('pointerleave', () => { pointerX = 0; pointerY = 0; });
   document.addEventListener('visibilitychange', () => { last = 0; requestRender(); });
-  motion.addEventListener('change', () => { if (motion.matches) { playing = false; setButtons(); requestRender(); } });
   renderer.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); cancelAnimationFrame(frame); frame = 0; host.classList.add('experience-fallback'); status.textContent = '3D view unavailable. Jump → sensor → wireless signal → dinosaur jump.'; });
-  setButtons(); pose(0); resize(); host.dataset.ready = 'true';
+  pose(0); resize(); host.dataset.ready = 'true';
 })();

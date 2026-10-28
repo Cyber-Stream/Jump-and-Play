@@ -18,7 +18,7 @@ async function advancing(video) {
   } catch (error) {
     console.error(JSON.stringify(await video.evaluate(v => ({ paused: v.paused, readyState: v.readyState, currentTime: v.currentTime,
       error: v.error?.message, visibility: document.visibilityState, bounds: v.getBoundingClientRect().toJSON(),
-      button: document.querySelector('.hero-video-toggle').textContent, scrollY }))));
+      scrollY }))));
     await video.page().screenshot({ path: path.join(out, 'playback-failure.png') });
     throw error;
   }
@@ -58,15 +58,10 @@ async function run() {
         assert.ok(await hero.evaluate(v => v.muted && v.playsInline), 'Background video is not muted and inline');
         const source = await hero.evaluate(v => v.currentSrc);
         assert.ok(source.includes(width <= 767 ? 'hero-mobile' : 'hero-desktop'), `Incorrect responsive source: ${source}`);
-        await page.locator('.hero-video-toggle').click();
-        assert.ok(await hero.evaluate(v => v.paused), 'Manual pause failed');
         await page.locator('#contact').scrollIntoViewIfNeeded();
         await noOverflow(page, `${name} ${width} contact`);
         if (width < 640) assert.ok(await page.locator('#contact-email').evaluate(e => parseFloat(getComputedStyle(e).fontSize) >= 16), 'Input can trigger mobile zoom');
         await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
-        await page.waitForTimeout(200);
-        assert.ok(await hero.evaluate(v => v.paused), 'Scroll overrode manual pause');
-        await page.locator('.hero-video-toggle').click();
         await advancing(hero);
         await page.locator('#action').scrollIntoViewIfNeeded();
         await page.waitForFunction(el => { const bounds = el.getBoundingClientRect(); return bounds.bottom <= 0 || bounds.top >= innerHeight; }, await hero.elementHandle(), { timeout: 5000 });
@@ -104,7 +99,6 @@ async function run() {
         await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
         await page.waitForTimeout(250);
-        assert.ok(await hero.evaluate(v => v.paused), 'Reduced motion did not stop background video');
         assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior), 'auto');
         const hiddenContent = await page.locator('.reveal').evaluateAll(nodes => nodes.filter(e => Number(getComputedStyle(e).opacity) < .99).map(e => ({ element: e.className, opacity: getComputedStyle(e).opacity })));
         assert.deepEqual(hiddenContent, [], `Reduced motion hid content: ${name} ${width}`);
@@ -137,7 +131,8 @@ async function run() {
         const video = page.locator('.hero-bg-video');
         assert.ok(await video.evaluate(v => v.paused && !!v.poster), 'Blocked autoplay has no poster');
         await page.evaluate(() => { window.blockBackgroundPlayback = false; });
-        await page.locator('.hero-video-toggle').click();
+        const stage = await page.locator('.hero-stage').boundingBox();
+        await page.locator('.hero-stage').click({ position: { x: 8, y: stage.height - 8 } });
         await advancing(video);
         console.log(JSON.stringify({ browser: name, blockedAutoplayFallback: true, tapToPlay: true }));
         await context.close();
@@ -155,17 +150,14 @@ async function run() {
         await savePage.goto(base, { waitUntil: 'domcontentloaded' });
         await savePage.waitForFunction(() => typeof skipIntro === 'function' && document.querySelector('.hero-bg-video').dataset.playback);
         await savePage.evaluate(() => skipIntro());
-        assert.ok(await savePage.locator('.hero-bg-video').evaluate(v => v.paused), 'Data-saving preference was ignored');
-        await savePage.locator('.hero-video-toggle').click();
         await advancing(savePage.locator('.hero-bg-video'));
         const firstCard = savePage.locator('.action-card').first();
         await firstCard.locator('.action-toggle').click();
         await savePage.waitForFunction(() => document.querySelector('.action-card .video-status').textContent.includes('Unable to play'));
-        assert.ok(await firstCard.locator('.video-direct').isVisible(), 'No direct link after playback failure');
         await savePage.evaluate(() => { window.blockClipPlayback = false; });
         await firstCard.locator('.action-toggle').click();
         await advancing(firstCard.locator('video'));
-        console.log(JSON.stringify({ browser: name, dataSaverRespected: true, explicitPlayWorks: true, clipFailureRetry: true, directVideoFallback: true }));
+        console.log(JSON.stringify({ browser: name, clipFailureRetry: true }));
         await saving.close();
       }
     } finally { await browser.close(); }

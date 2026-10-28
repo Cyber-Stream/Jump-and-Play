@@ -5,17 +5,6 @@ const path = require('node:path');
 const base = process.argv[2] || 'http://localhost:3000';
 const output = path.resolve(__dirname, '../.motion-qa');
 fs.mkdirSync(output, { recursive: true });
-async function stoppedDrawing(page, id) {
-  let previous = await page.evaluate(id => window.sceneDraws[id], id), quiet = 0;
-  for (let i = 0; i < 15; i++) {
-    await page.waitForTimeout(200);
-    const current = await page.evaluate(id => window.sceneDraws[id], id);
-    quiet = current === previous ? quiet + 1 : 0;
-    if (quiet === 3) return;
-    previous = current;
-  }
-  assert.fail(`${id}: paused animation kept drawing`);
-}
 const showViewport = host => host.locator('.experience-viewport').evaluate(element => element.scrollIntoView({ block: 'center', behavior: 'instant' }));
 
 (async () => {
@@ -69,10 +58,6 @@ const showViewport = host => host.locator('.experience-viewport').evaluate(eleme
         await page.waitForFunction(id => window.sceneDraws[id] > 0, id);
         const before = await page.evaluate(id => window.sceneDraws[id], id);
         await page.waitForFunction(({ id, before }) => window.sceneDraws[id] > before, { id, before });
-        await host.locator('.experience-pause').click();
-        await showViewport(host);
-        // A paused scene still paints once when it becomes visible or is resized.
-        await stoppedDrawing(page, id);
         if (id === 'howExperience') {
           for (let i = 0; i < 6; i++) {
             await host.locator('.walkthrough-stage-button').nth(i).click();
@@ -81,11 +66,10 @@ const showViewport = host => host.locator('.experience-viewport').evaluate(eleme
           }
         }
         await page.screenshot({ path: path.join(output, `restored-${name}-${id}.png`) });
-        await host.locator('.experience-replay').click();
-        await showViewport(host);
-        const replay = await page.evaluate(id => window.sceneDraws[id], id);
-        await page.waitForFunction(({ id, before }) => window.sceneDraws[id] > before, { id, before: replay });
-        rendered.push({ id, rendered: true, pause: true, replay: true, steps: id === 'howExperience' ? 6 : undefined });
+        // Choosing a step must not stop the continuous animation.
+        const after = await page.evaluate(id => window.sceneDraws[id], id);
+        await page.waitForFunction(({ id, before }) => window.sceneDraws[id] > before, { id, before: after });
+        rendered.push({ id, rendered: true, continuous: true, steps: id === 'howExperience' ? 6 : undefined });
       }
       await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
       await page.waitForTimeout(600);

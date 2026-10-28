@@ -2,19 +2,15 @@
   const host = document.getElementById('howExperience');
   if (!host) return;
   const viewport = host.querySelector('.experience-viewport');
-  const pauseButton = host.querySelector('.experience-pause');
-  const replayButton = host.querySelector('.experience-replay');
   const status = host.querySelector('.experience-status');
   const stepCards = [...document.querySelectorAll('.how-section .step-card')];
   const stageButtons = [...host.querySelectorAll('.walkthrough-stage-button')];
-  const motion = matchMedia('(prefers-reduced-motion: reduce)');
   let renderer;
   try {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
   } catch (error) {
     host.classList.add('experience-fallback');
     status.textContent = 'Your jump → pressure sensors → wireless controller → dinosaur jump';
-    pauseButton.disabled = true; replayButton.disabled = true;
     return;
   }
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -194,10 +190,11 @@
   const desiredPosition = new THREE.Vector3(), desiredTarget = new THREE.Vector3();
   const pairLine = new THREE.CatmullRomCurve3([new THREE.Vector3(-.6,.3,.6),new THREE.Vector3(-.2,1.3,1.1),new THREE.Vector3(.2,1.1,1)]);
   const pairingPackets = [0,1,2,3].map(() => sphere(.035,glow));
-  let playing = !motion.matches, visible = false, frame = 0, last = 0, elapsed = 0, currentStage = -1;
+  // The walkthrough plays continuously; it only stops drawing while offscreen or hidden.
+  const playing = true;
+  let visible = false, frame = 0, last = 0, elapsed = 0, currentStage = -1;
   let gameTick = -1, notebookStage = -1;
   const totalDuration = 30, stageDuration = 5;
-  const setButtons = () => { pauseButton.textContent = playing ? 'Pause walkthrough' : 'Play walkthrough'; pauseButton.setAttribute('aria-pressed',String(!playing)); };
   const drawNotebook = (stage, local) => {
     const c = laptopCtx; c.fillStyle = '#0d1e31'; c.fillRect(0,0,640,400);
     c.fillStyle = '#85b3c9'; c.font = '18px sans-serif'; c.fillText('JUMP & PLAY / CONNECT',34,42);
@@ -291,20 +288,17 @@
     if(playing)frame=requestAnimationFrame(render);
   };
   const requestRender=()=>{if(!frame&&visible&&!document.hidden)frame=requestAnimationFrame(render);};
-  const seekStage=index=>{elapsed=index*stageDuration+(index===3?2.75:1.8);last=0;playing=false;gameTick=-1;setButtons();requestRender();};
+  const seekStage=index=>{elapsed=index*stageDuration+(index===3?2.75:1.8);last=0;gameTick=-1;requestRender();};
   stageButtons.forEach((button,i)=>button.addEventListener('click',()=>seekStage(i)));
   stepCards.forEach((card,i)=>{
     card.setAttribute('role','button');card.tabIndex=0;card.setAttribute('aria-label',`Show step ${i+1}: ${titles[i]}`);
     card.addEventListener('click',()=>seekStage(i));
     card.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();seekStage(i);}});
   });
-  pauseButton.addEventListener('click',()=>{playing=!playing;last=0;setButtons();requestRender();});
-  replayButton.addEventListener('click',()=>{elapsed=0;last=0;playing=true;gameTick=-1;setButtons();requestRender();});
   const resize=()=>{const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<600?43:34;camera.updateProjectionMatrix();requestRender();};
   new ResizeObserver(resize).observe(viewport);
   new IntersectionObserver(entries=>{visible=entries[entries.length - 1].isIntersecting;if(visible)requestRender();else{cancelAnimationFrame(frame);frame=0;last=0;}},{threshold:.08}).observe(viewport);
   document.addEventListener('visibilitychange',()=>{last=0;requestRender();});
-  motion.addEventListener('change',()=>{if(motion.matches){playing=false;setButtons();requestRender();}});
   renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();cancelAnimationFrame(frame);frame=0;host.classList.add('experience-fallback');status.textContent='Follow the six steps below to connect and play.';});
-  setButtons();pose(0);resize();host.dataset.ready='true';
+  pose(0);resize();host.dataset.ready='true';
 })();

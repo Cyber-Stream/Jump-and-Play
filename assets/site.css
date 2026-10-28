@@ -785,12 +785,6 @@
   .experience-eyebrow { display: flex; align-items: center; gap: 8px; color: #9ab9ce; font-size: .65rem;
     text-transform: uppercase; letter-spacing: .18em; margin-bottom: 16px; }
   .experience-eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #63dbe5; box-shadow: 0 0 12px #45d7e466; }
-  .experience-controls { display: flex; gap: 8px; flex-shrink: 0; }
-  .experience-controls button { color: #bdcedd; border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.035);
-    border-radius: 30px; min-height: 42px; padding: 10px 16px; font: 500 .75rem 'Space Grotesk',sans-serif; cursor: pointer;
-    transition: background .3s, color .3s; }
-  .experience-controls button:hover { background: rgba(86,207,225,.1); color: #f0f4ff; }
-  .experience-controls button:disabled { opacity: .4; cursor: default; }
   .experience-viewport { position: relative; height: clamp(370px,45vw,530px); width: 100%; }
   .experience-viewport canvas { display: block; width: 100%; height: 100%; }
   .experience-status { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
@@ -812,7 +806,6 @@
   @media (max-width: 640px) {
     .experience-heading { flex-direction: column; gap: 18px; }
     .experience-viewport { height: 310px; }
-    .experience-controls button { font-size: .7rem; min-height: 40px; }
     .experience-step { padding: 18px 12px; }
     .experience-step h4 { font-size: .8rem; }
     .experience-step p { font-size: .69rem; }

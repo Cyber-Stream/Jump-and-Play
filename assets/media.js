@@ -1,23 +1,17 @@
 (() => {
   'use strict';
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  const connection = navigator.connection;
   const hero = document.querySelector('.hero-bg-video');
-  const toggle = document.querySelector('.hero-video-toggle');
   const heroStatus = document.querySelector('.hero-video-status');
   const clips = [...document.querySelectorAll('.action-video')];
-  let heroVisible = true, pageActive = true, userChoice = null, playAttempt = 0;
+  let heroVisible = true, pageActive = true, playAttempt = 0;
   let pending = false, blocked = false;
-  const automaticAllowed = () => !reduced.matches && !connection?.saveData;
-  const heroWanted = () => pageActive && heroVisible && !document.hidden && (userChoice === true || (userChoice === null && automaticAllowed()));
+  // The background video always plays; it only pauses while offscreen or the page is hidden.
+  const heroWanted = () => pageActive && heroVisible && !document.hidden;
   const syncHero = () => {
     const playing = !hero.paused && !hero.ended;
-    toggle.textContent = playing || pending ? 'Pause background video' : 'Play background video';
-    toggle.setAttribute('aria-label', toggle.textContent);
-    toggle.setAttribute('aria-pressed', String(playing));
     hero.dataset.playback = playing ? 'playing' : blocked ? 'blocked' : pending ? 'loading' : 'paused';
-    if (heroStatus) heroStatus.textContent = hero.error ? 'Video unavailable. Tap Play to retry.'
-      : blocked ? 'Tap Play to start the background video.' : '';
+    if (heroStatus) heroStatus.textContent = hero.error ? 'Video unavailable. Tap to retry.'
+      : blocked ? 'Tap to start the background video.' : '';
   };
   const playHero = () => {
     const attempt = ++playAttempt;
@@ -47,19 +41,10 @@
     if (heroWanted()) { if (hero.paused && !pending && !blocked) playHero(); }
     else { ++playAttempt; pending = false; hero.pause(); syncHero(); }
   };
-  if (hero && toggle) {
+  if (hero) {
     hero.muted = true; hero.defaultMuted = true; hero.playsInline = true;
     hero.setAttribute('muted', ''); hero.setAttribute('playsinline', '');
     hero.setAttribute('webkit-playsinline', '');
-    toggle.addEventListener('click', () => {
-      const bounds = hero.getBoundingClientRect();
-      heroVisible = bounds.bottom > 0 && bounds.top < innerHeight;
-      // Honor the displayed control if Safari changes paused before its media event arrives.
-      userChoice = toggle.getAttribute('aria-pressed') !== 'true' && !pending;
-      hero.autoplay = userChoice;
-      if (userChoice) playHero(); else { ++playAttempt; pending = false; hero.pause(); }
-      syncHero();
-    });
     hero.addEventListener('playing', () => {
       pending = false; blocked = false;
       if (!heroWanted()) hero.pause();
@@ -68,16 +53,14 @@
     ['pause', 'ended', 'error'].forEach(event => hero.addEventListener(event, syncHero));
     ['loadedmetadata', 'canplay'].forEach(event => hero.addEventListener(event, updateHero));
     // A deliberate interaction with the introduction can unlock silent playback on iOS.
-    hero.closest('.hero-stage').addEventListener('click', event => {
-      if (!event.target.closest('.hero-video-toggle') && blocked && heroWanted()) playHero();
+    hero.closest('.hero-stage').addEventListener('click', () => {
+      if ((blocked || hero.error) && heroWanted()) playHero();
     });
     if ('IntersectionObserver' in window) new IntersectionObserver(entries => {
       heroVisible = entries[entries.length - 1].isIntersecting;
       hero.closest('.hero').classList.toggle('motion-out-of-view', !heroVisible);
       updateHero();
     }, { threshold: .05 }).observe(hero);
-    reduced.addEventListener('change', () => { userChoice = null; blocked = false; updateHero(); });
-    connection?.addEventListener('change', updateHero);
     // Safari can suspend decoding during rotation without a new intersection event.
     let layoutFrame = 0, layoutTimer = 0;
     const refreshFrame = () => {
@@ -122,7 +105,7 @@
         loading = false; status.textContent = ''; sync();
       }).catch(() => {
         loading = false;
-        status.textContent = 'Unable to play. Tap again to retry, or open the video below.';
+        status.textContent = 'Unable to play. Tap again to retry.';
         sync();
       });
     });

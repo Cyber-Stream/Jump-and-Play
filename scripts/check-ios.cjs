@@ -13,7 +13,7 @@ async function advancing(page) {
   }, null, { timeout: 20000 }).catch(async error => {
     console.error(await page.locator('.hero-bg-video').evaluate(v => ({ paused: v.paused, ready: v.readyState,
       error: v.error?.message, source: v.currentSrc, state: v.dataset.playback, autoplay: v.autoplay,
-      button: document.querySelector('.hero-video-toggle').textContent, attempts: window.playAttempts })));
+      attempts: window.playAttempts })));
     throw error;
   });
   const before = await page.locator('.hero-bg-video').evaluate(v => v.currentTime);
@@ -40,19 +40,6 @@ async function framing(page) {
     for (const name of ['iPhone SE', 'iPhone 13', 'iPad (gen 7)']) {
       if (process.env.QA_DEVICE && process.env.QA_DEVICE !== name) continue;
       const context = await browser.newContext({ ...devices[name] });
-      await context.addInitScript(() => {
-        window.videoAudit = [];
-        for (const method of ['play', 'pause']) {
-          const original = HTMLMediaElement.prototype[method];
-          HTMLMediaElement.prototype[method] = function(...args) {
-            if (this.classList.contains('hero-bg-video')) window.videoAudit.push({ method, paused: this.paused, autoplay: this.autoplay, at: Math.round(performance.now()) });
-            return original.apply(this, args);
-          };
-        }
-        document.addEventListener('click', event => {
-          if (event.target.closest('.hero-video-toggle')) window.videoAudit.push({ method: 'click', paused: document.querySelector('.hero-bg-video').paused, label: event.target.textContent, at: Math.round(performance.now()) });
-        }, { capture: true });
-      });
       const page = await context.newPage();
       const errors = [];
       page.on('pageerror', error => errors.push(error.message));
@@ -72,20 +59,8 @@ async function framing(page) {
       assert.ok(await page.locator('.hero-bg-video').evaluate(v => v.paused));
       await page.evaluate(() => dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
       await advancing(page);
-      await page.locator('.hero-video-toggle').scrollIntoViewIfNeeded();
-      await page.waitForTimeout(250);
-      if (await page.locator('.hero-bg-video').evaluate(v => v.paused)) {
-        await page.locator('.hero-video-toggle').click();
-        await advancing(page);
-      }
-      await page.locator('.hero-video-toggle').click();
-      const pausedByUser = await page.locator('.hero-bg-video').evaluate(v => ({ paused: v.paused, autoplay: v.autoplay, state: v.dataset.playback, button: document.querySelector('.hero-video-toggle').textContent }));
-      if (!pausedByUser.paused) console.error(await page.evaluate(() => window.videoAudit));
-      assert.ok(pausedByUser.paused, `${name}: pause failed ${JSON.stringify(pausedByUser)}`);
-      await page.evaluate(() => dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
-      assert.ok(await page.locator('.hero-bg-video').evaluate(v => v.paused && !v.autoplay), 'Returning to page overrode manual pause');
       assert.deepEqual(errors, []);
-      console.log(JSON.stringify({ device: name, autoplay: true, portraitAndLandscape: true, lifecycleRecovery: true, manualPausePreserved: true }));
+      console.log(JSON.stringify({ device: name, autoplay: true, portraitAndLandscape: true, lifecycleRecovery: true }));
       await context.close();
     }
 
@@ -99,7 +74,7 @@ async function framing(page) {
       window.autoplayDenied = true;
       window.playAttempts = 0;
       document.addEventListener('click', event => {
-        if (event.target.closest('.hero-video-toggle')) window.autoplayDenied = false;
+        if (event.target.closest('.hero-stage')) window.autoplayDenied = false;
       }, { capture: true });
       const original = HTMLMediaElement.prototype.play;
       const autoplay = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'autoplay');
@@ -121,11 +96,13 @@ async function framing(page) {
     await page.evaluate(() => skipIntro());
     await page.waitForTimeout(800);
     assert.ok(await page.locator('.hero-bg-video').evaluate(v => v.paused && v.poster.includes('hero-poster-v2')));
-    assert.match(await page.locator('.hero-video-status').textContent(), /Tap Play/);
+    assert.match(await page.locator('.hero-video-status').textContent(), /Tap to start/);
     const attempts = await page.evaluate(() => window.playAttempts);
     await page.waitForTimeout(500);
     assert.equal(await page.evaluate(() => window.playAttempts), attempts, 'Blocked playback entered a retry loop');
-    await page.locator('.hero-video-toggle').click();
+    // Tap an empty corner of the introduction, away from the links and navigation.
+    const stage = await page.locator('.hero-stage').boundingBox();
+    await page.locator('.hero-stage').click({ position: { x: 8, y: stage.height - 8 } });
     await advancing(page);
     assert.equal(await page.locator('.hero-video-status').textContent(), '');
     console.log(JSON.stringify({ device: 'iPhone 13', blockedAutoplayPoster: true, noRetryLoop: true, tapToPlay: true }));
