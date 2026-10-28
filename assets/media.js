@@ -77,6 +77,8 @@
     window.addEventListener('resize', scheduleFrameRefresh, { passive: true });
     window.addEventListener('orientationchange', scheduleFrameRefresh, { passive: true });
     updateHero();
+    // Native autoplay can start before this deferred script attaches its listeners.
+    syncHero();
   }
   clips.forEach(video => {
     const card = video.closest('.action-card');
