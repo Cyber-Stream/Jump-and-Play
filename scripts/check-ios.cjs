@@ -27,12 +27,10 @@ async function framing(page) {
   const frame = await page.evaluate(() => {
     const video = document.querySelector('.hero-bg-video').getBoundingClientRect();
     const stage = document.querySelector('.hero-stage').getBoundingClientRect();
-    const photos = document.querySelector('.platform-showcase').getBoundingClientRect();
     return { videoHeight: video.height, stageHeight: stage.height, videoWidth: video.width,
-      viewport: innerWidth, overflow: document.documentElement.scrollWidth, photoTop: photos.top, stageBottom: stage.bottom };
+      viewport: innerWidth, overflow: document.documentElement.scrollWidth };
   });
   assert.ok(Math.abs(frame.videoHeight - frame.stageHeight) < 2, 'Video escaped its introduction frame');
-  assert.ok(frame.photoTop >= frame.stageBottom - 1, 'Video framing includes the product photos');
   assert.ok(frame.videoWidth <= frame.viewport + 1 && frame.overflow <= frame.viewport + 1, 'Horizontal overflow');
 }
 

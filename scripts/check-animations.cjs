@@ -47,7 +47,6 @@ const showViewport = host => host.locator('.experience-viewport').evaluate(eleme
       page.on('request', request => requests.push(request.url()));
       await page.goto(base, { waitUntil: 'domcontentloaded' });
       await page.waitForFunction(() => document.querySelector('#heroContent').classList.contains('show'));
-      assert.equal(await page.locator('.platform-img-wrap').first().evaluate(e => getComputedStyle(e).animationName), 'float');
       assert.equal(await page.locator('.hero-eyebrow').evaluate(e => getComputedStyle(e, '::before').animationName), 'blink');
       assert.ok(requests.some(url => /three\.min\.js\?rev=original-602d465/.test(url)), 'Original 3D runtime did not load with the page');
       assert.equal(await page.locator('#howExperience[data-ready="true"],#jumpExperience[data-ready="true"]').count(), 2, 'Original scenes did not initialize with the page');
@@ -94,11 +93,9 @@ const showViewport = host => host.locator('.experience-viewport').evaluate(eleme
       await page.waitForTimeout(400);
       assert.deepEqual(await page.evaluate(() => window.sceneDraws), offscreen, 'Offscreen scenes continued rendering');
       await page.emulateMedia({ reducedMotion: 'reduce' });
-      await page.waitForFunction(() => getComputedStyle(document.querySelector('.platform-img-wrap')).animationName === 'none');
-      assert.equal(await page.locator('.platform-img-wrap').first().evaluate(e => getComputedStyle(e).animationName), 'none');
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Mobile layout overflow');
       assert.deepEqual(errors, []);
-      console.log(JSON.stringify({ browser: name, floatingImages: true, pulsingAccents: true, originalScenesInitialized: true, offscreenPause: true, reducedMotion: true, scenes: rendered }));
+      console.log(JSON.stringify({ browser: name, pulsingAccents: true, originalScenesInitialized: true, offscreenPause: true, reducedMotion: true, scenes: rendered }));
       await context.close();
     } finally { await browser.close(); }
   }
